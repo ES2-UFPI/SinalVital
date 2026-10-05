@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SinalVital — Painel de demonstração</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:720px;margin:32px auto;padding:0 16px;color:#16233A}
+  h1{font-size:22px} h2{font-size:16px;margin-top:28px}
+  input,textarea{width:100%;padding:8px;margin:4px 0;box-sizing:border-box;font:inherit}
+  button{padding:8px 14px;margin-top:6px;cursor:pointer}
+  pre{background:#f4f6f9;padding:12px;border-radius:8px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1>SinalVital — Painel de demonstração</h1>
+
+<h2>1. Cadastrar paciente (POST /pacientes)</h2>
+<input id="nome" placeholder="Nome">
+<input id="email" placeholder="E-mail">
+<button onclick="cadastrar()">Cadastrar</button>
+
+<h2>2. Listar pacientes (GET /pacientes)</h2>
+<button onclick="listar()">Atualizar lista</button>
+
+<h2>3. Classificar sintomas (POST /classificar)</h2>
+<textarea id="sintomas" rows="3" placeholder="Ex: dor no peito e falta de ar"></textarea>
+<button onclick="classificar()">Classificar</button>
+
+<h2>Resposta do servidor</h2>
+<pre id="saida">(nada ainda)</pre>
+
+<script>
+const API = window.location.origin;
+const saida = document.getElementById('saida');
+
+async function chamar(caminho, opcoes) {
+  const resposta = await fetch(API + caminho, opcoes);
+  const corpo = await resposta.json();
+  saida.textContent = resposta.status + " " + (resposta.ok ? "OK" : "ERRO") + "\n" + JSON.stringify(corpo, null, 2);
+  return { ok: resposta.ok, corpo };
+}
+
+function post(caminho, dados) {
+  return chamar(caminho, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dados),
+  });
+}
+
+async function cadastrar() {
+  await post("/pacientes", {
+    nome: document.getElementById('nome').value,
+    email: document.getElementById('email').value,
+  });
+}
+async function listar() { await chamar("/pacientes"); }
+async function classificar() {
+  await post("/classificar", { texto_sintomas: document.getElementById('sintomas').value });
+}
+</script>
+</body>
+</html>
