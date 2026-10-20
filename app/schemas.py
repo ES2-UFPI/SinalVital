@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class EventoHistoricoEntrada(BaseModel):
@@ -28,16 +28,18 @@ class EventoHistoricoResposta(BaseModel):
     
     
 class PacienteEntrada(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
     # ESQUEMA PARA COLOCAR DADOS DE UM PACIENTE NO BANCO DE DADOS
-    nome: str = Field(..., examples=["Raimundo"])
-    email: str = Field(..., examples=["raimundo@sinalvital.com"])
-    idade:Optional[int] = Field(None, examples=[65])
-    condicao_cronica: Optional[str] = Field(None, examples=["Cardiopatia e hipertensao"])
+    nome: str = Field(..., min_length=1, max_length=120, examples=["Raimundo"])
+    email: EmailStr = Field(..., max_length=120, examples=["raimundo@sinalvital.com"])
+    idade:Optional[int] = Field(None, ge=0, examples=[65])
+    condicao_cronica: Optional[str] = Field(None, max_length=200, examples=["Cardiopatia e hipertensao"])
 
 class PacienteResposta(BaseModel):
     # ESQUEMA DE GET PARA VISUALIZAR OS DADOS DO PACIENTE
     model_config=ConfigDict(from_attributes=True)
     
+    id: int
     nome:str
     email:str
     idade:Optional[int] = None
