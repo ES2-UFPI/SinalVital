@@ -45,6 +45,34 @@ e condição crônica até 200. Espaços nas extremidades são removidos.
 - `409`: e-mail já cadastrado.
 - `422`: dados inválidos ou campos obrigatórios ausentes.
 
+## Classificação de sintomas — issue #15 ([005-02])
+
+`app/ia_service.py` implementa Strategy com a classe abstrata `Classificador`
+e a implementação inicial `MockClassificador`. A `ClassificadorFactory` escolhe
+a implementação lendo `MODO_IA` a cada chamada de `criar()`:
+
+- Ausente ou `mock`: usa o mock.
+- `real`: também usa o mock enquanto a implementação real não existir.
+- Outro valor (inclusive vazio): gera `ValueError` para indicar configuração inválida.
+
+O `.env` é carregado sem sobrescrever as variáveis do ambiente. O modo aceita
+maiúsculas e espaços nas extremidades. Não são necessárias chave de API ou rede.
+
+```python
+from app.ia_service import ClassificadorFactory
+
+classificador = ClassificadorFactory.criar()
+resultado = classificador.classificar("dor no peito e falta de ar")
+# {"urgencia": "emergencia", "especialidade": "cardiologia",
+#  "justificativa": "Classificado como emergencia por mencionar: dor no peito, falta de ar."}
+```
+
+O mock aplica regras iniciais por palavras-chave, priorizando emergência sobre
+alta e usando baixa como padrão. Retorna `urgencia`, `especialidade` e
+`justificativa`; relatos vazios geram `ValueError`. É uma simulação didática.
+A expansão das regras pertence à [005-03], e a exposição pelo endpoint
+`POST /triagens` à [005-04]. Esta etapa não adiciona uma rota de classificação.
+
 ## Testes
 
 ```powershell
