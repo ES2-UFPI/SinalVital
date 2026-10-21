@@ -50,3 +50,29 @@ class HistoricoUnificadoResposta(PacienteResposta):
     #ESQUEMA CASO ALGUEM REQUISITE UM GET PARA VISUALIZAR pacientes/{id}/historico
     model_config = ConfigDict(from_attributes=True)
     eventos_historico:list[EventoHistoricoResposta] = []
+
+
+class TriagemEntrada(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    
+    paciente_id: int = Field(..., ge=1, examples = [1])
+    texto_sintomas: str = Field(..., min_length=1, examples=["Dor no peito e Falta de ar ha 30 minutos"])
+
+class ResultadoClassificacao(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    urgencia:str = Field(default= "baixa", examples=["emergencia"] )
+    especialidade:str =  Field(default="clinica_geral", examples= ["Cardiologia"])
+    justificativa:Optional[str] = Field(None, examples=["Classificado como emergencia por mencinar dor no peito e falta de ar."])
+    
+    
+class TriagemResposta(BaseModel):
+    # ESQUEMA DE SAIDA DA TRIAGEM SALVA NO BANCO DE DADOS
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    paciente_id: int
+    texto_sintomas: str
+    urgencia: str
+    especialidade: str
+    justificativa: Optional[str] = None
+    criado_em: datetime
