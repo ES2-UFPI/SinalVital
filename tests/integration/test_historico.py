@@ -16,10 +16,9 @@ Setup:
     sem depender de arquivo de banco externo nem de variável de ambiente.
 """
 
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
-from app.models import Paciente, EventoHistorico
+from app.database.models import EventoHistorico, Paciente
 
 
 # ---------------------------------------------------------------------------

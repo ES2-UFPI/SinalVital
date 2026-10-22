@@ -9,8 +9,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from .database import Base, engine
-from .routers import pacientes as pacientes_router
+from app.api.routes import pacientes_router
+from app.database import Base, engine
+from app.api.routes import triagens
+
 
 
 @asynccontextmanager
@@ -33,4 +35,5 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 # Registro de routers
 # ---------------------------------------------------------------------------
-app.include_router(pacientes_router.router)
+app.include_router(pacientes_router)
+app.include_router(triagens.router)
