@@ -6,7 +6,7 @@ from app.ia_service import Classificador, ClassificadorFactory, MockClassificado
 @pytest.fixture(autouse=True)
 def ignorar_dotenv(monkeypatch):
     # O .env local do desenvolvedor não deve interferir nos cenários de configuração.
-    monkeypatch.setattr("app.ia_service.load_dotenv", lambda: None)
+    monkeypatch.setattr("app.domain.triagem.strategies.classificador.load_dotenv", lambda: None)
 
 
 def test_classificador_exige_implementacao():
