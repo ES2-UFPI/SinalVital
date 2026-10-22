@@ -19,7 +19,7 @@ Setup:
 import pytest
 from datetime import datetime, timezone, timedelta
 
-from app.models import Paciente, EventoHistorico
+from app.database.models.models import Paciente, EventoHistorico
 
 
 # ---------------------------------------------------------------------------

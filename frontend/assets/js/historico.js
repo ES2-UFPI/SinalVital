@@ -1,47 +1,3 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Meu histórico – SinalVital</title>
-<style>
-  :root { --fundo:#fff; --texto:#111; --borda:#111; --linha:#444; }
-  * { box-sizing: border-box; }
-  body { margin:0; padding:20px; background:var(--fundo); color:var(--texto);
-         font-family: Arial, Helvetica, sans-serif; font-size:1.25rem; line-height:1.5; }
-  main { max-width:760px; margin:0 auto; }
-  h1 { font-size:2rem; margin:0 0 4px; }
-  .sub { margin:0 0 20px; }
-  button { font-size:1.25rem; padding:14px 22px; min-height:52px; border:3px solid var(--borda);
-           background:#fff; color:var(--texto); border-radius:8px; cursor:pointer; font-weight:bold; }
-  button:focus-visible { outline:4px solid #0645ad; outline-offset:2px; }
-  #aviso { border:3px solid var(--borda); padding:14px; border-radius:8px; margin:16px 0; }
-  #aviso[hidden] { display:none; }
-  #aviso.erro { background:#fff0f0; }
-  ol.linha { list-style:none; margin:24px 0 0; padding:0 0 0 28px; border-left:4px solid var(--linha); }
-  ol.linha li { position:relative; margin:0 0 24px; padding:16px; border:3px solid var(--borda); border-radius:8px; }
-  ol.linha li::before { content:""; position:absolute; left:-43px; top:22px; width:18px; height:18px;
-                        background:var(--borda); border-radius:50%; }
-  .data { font-weight:bold; margin:0; }
-  .tipo { margin:0 0 8px; text-transform:capitalize; }
-  .desc { margin:0 0 10px; }
-  .selo { display:inline-block; padding:2px 10px; border:3px solid var(--borda); border-radius:6px;
-          font-weight:bold; margin-right:8px; }
-  .selo.emergencia { background:#111; color:#fff; }
-  .selo.alta { background:#ddd; }
-  .just { margin:10px 0 0; padding-top:8px; border-top:2px solid #999; }
-</style>
-</head>
-<body>
-<main>
-  <h1>Meu histórico</h1>
-  <p class="sub" id="paciente">Consultas e triagens, da mais recente para a mais antiga.</p>
-  <button id="recarregar" type="button">Atualizar</button>
-  <div id="aviso" role="status" aria-live="polite" hidden></div>
-  <ol class="linha" id="linha" aria-label="Linha do tempo do histórico"></ol>
-</main>
-
-<script>
 // true = usa os dados de exemplo abaixo; false = busca GET /pacientes/{id}/historico (issue #18).
 const USAR_DADOS_EXEMPLO = true;
 const API = window.location.origin;
@@ -129,6 +85,3 @@ async function carregar() {
 
 $("recarregar").addEventListener("click", carregar);
 carregar();
-</script>
-</body>
-</html>

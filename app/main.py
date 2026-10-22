@@ -3,10 +3,12 @@ Entrypoint da aplicação SinalVital — FastAPI
 Cria a instância `app`, registra os routers e garante que as tabelas
 existam no banco de dados na inicialização.
 """
+from pathlib import Path
 
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from .database.database import Base, engine
 from .routers import pacientes as pacientes_router
@@ -62,3 +64,6 @@ def criar_paciente(dados: PacienteEntrada, db: Session = Depends(get_db)):
         raise
     db.refresh(paciente)
     return paciente
+
+FRONTEND_DIR = Path(__file__).resolve().parent().parent() / "fronted" # pega o caminho para o arqv atual, normaliza, pega seus 2 pais, e a pasta frontend
+app.mount("/frontend",StaticFiles(directory=FRONTEND_DIR),"frontend")

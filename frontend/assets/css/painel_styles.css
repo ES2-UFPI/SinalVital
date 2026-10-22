@@ -1,0 +1,142 @@
+
+    /* cores e tamanhos que o resto do css reaproveita. mudar aqui muda a pagina toda */
+    :root {
+      --escala: 1;
+      --cor-pagina: #eef4f6;
+      --cor-superficie: #ffffff;
+      --cor-texto: #10303a;
+      --cor-texto-suave: #3f5b64;
+      --cor-primaria: #0a6c74;
+      --cor-primaria-texto: #ffffff;
+      --cor-borda: #b7ccd2;
+      --cor-alerta: #b3261e;
+      --cor-foco: #ffb000;
+      --raio: 14px;
+    }
+    /* quando o alto contraste liga, so trocamos as variaveis e o resto se ajusta sozinho */
+    html[data-contraste="alto"] {
+      --cor-pagina: #000000;
+      --cor-superficie: #000000;
+      --cor-texto: #ffffff;
+      --cor-texto-suave: #ffffff;
+      --cor-primaria: #ffd60a;
+      --cor-primaria-texto: #000000;
+      --cor-borda: #ffffff;
+      --cor-alerta: #ff6b6b;
+      --cor-foco: #00e5ff;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    /* o tamanho da letra da pagina inteira nasce daqui, por isso tudo usa rem */
+    html { font-size: calc(100% * var(--escala)); }
+    body {
+      margin: 0;
+      background: var(--cor-pagina);
+      color: var(--cor-texto);
+      font-family: "Atkinson Hyperlegible", system-ui, "Segoe UI", Arial, sans-serif;
+      line-height: 1.5;
+    }
+    /* contorno bem grosso pra quem navega pelo teclado enxergar onde esta */
+    :focus-visible { outline: 4px solid var(--cor-foco); outline-offset: 3px; }
+    button { font: inherit; color: inherit; cursor: pointer; }
+
+    /* link escondido que aparece so no foco, pra pular direto pro conteudo */
+    .pular {
+      position: absolute; left: 1rem; top: -4rem;
+      background: var(--cor-primaria); color: var(--cor-primaria-texto);
+      padding: .75rem 1rem; border-radius: var(--raio); z-index: 10;
+    }
+    .pular:focus { top: 1rem; }
+
+    /* cabecalho com a marca e os botoes de ajuste */
+    .topo {
+      background: var(--cor-superficie);
+      border-bottom: 2px solid var(--cor-borda);
+    }
+    .topo-interno {
+      max-width: 62rem; margin: 0 auto; padding: .75rem 1rem;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem;
+    }
+    .marca { font-size: 1.5rem; font-weight: 700; letter-spacing: .01em; }
+    .marca span { color: var(--cor-primaria); }
+    .ajustes { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .ajuste {
+      min-height: 3rem; min-width: 3.25rem; padding: .25rem .9rem;
+      background: var(--cor-superficie); border: 2px solid var(--cor-borda); border-radius: var(--raio);
+      font-weight: 700;
+    }
+    .ajuste[aria-pressed="true"] {
+      background: var(--cor-primaria); color: var(--cor-primaria-texto); border-color: var(--cor-primaria);
+    }
+    .ajuste:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* area principal da pagina */
+    main { max-width: 62rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 .25rem; }
+    h2 { font-size: 1.5rem; line-height: 1.25; margin: 0 0 .5rem; }
+    .apoio { margin: 0 0 1.5rem; color: var(--cor-texto-suave); font-size: 1.125rem; }
+
+    /* os dois botoes grandes de acao, lado a lado no computador e empilhados no celular */
+    .acoes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .acao {
+      display: flex; flex-direction: column; justify-content: center; gap: .25rem;
+      min-height: 8rem; padding: 1.25rem; text-align: left; text-decoration: none;
+      border-radius: var(--raio); border: 3px solid var(--cor-primaria);
+    }
+    .acao strong { font-size: 1.5rem; line-height: 1.2; }
+    .acao span { font-size: 1.0625rem; }
+    .acao-principal { background: var(--cor-primaria); color: var(--cor-primaria-texto); }
+    .acao-secundaria { background: var(--cor-superficie); color: var(--cor-texto); border-color: var(--cor-borda); }
+    html[data-contraste="alto"] .acao-secundaria { border-color: var(--cor-primaria); }
+
+    /* caixa do relato de sintomas */
+    .bloco {
+      background: var(--cor-superficie); border: 2px solid var(--cor-borda);
+      border-radius: var(--raio); padding: 1.25rem;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0 1.25rem; padding: 0; list-style: none; }
+    .chip {
+      min-height: 3.5rem; padding: .5rem 1.25rem; font-size: 1.125rem; font-weight: 700;
+      background: var(--cor-superficie); border: 3px solid var(--cor-borda); border-radius: 999px;
+    }
+    .chip[aria-pressed="true"] {
+      background: var(--cor-primaria); color: var(--cor-primaria-texto); border-color: var(--cor-primaria);
+    }
+    /* sintomas mais serios ganham a borda de alerta */
+    .chip-urgente { border-color: var(--cor-alerta); }
+
+    label { display: block; font-size: 1.25rem; font-weight: 700; margin-bottom: .5rem; }
+    textarea {
+      width: 100%; min-height: 8rem; padding: .875rem; resize: vertical;
+      font: inherit; font-size: 1.125rem; line-height: 1.5;
+      color: var(--cor-texto); background: var(--cor-superficie);
+      border: 3px solid var(--cor-borda); border-radius: var(--raio);
+    }
+    .envio { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: 1rem; }
+    .botao-enviar {
+      min-height: 3.75rem; padding: .5rem 2rem; font-size: 1.25rem; font-weight: 700;
+      background: var(--cor-primaria); color: var(--cor-primaria-texto);
+      border: 3px solid var(--cor-primaria); border-radius: var(--raio);
+    }
+    .botao-limpar {
+      min-height: 3.75rem; padding: .5rem 1.5rem; font-size: 1.125rem;
+      background: transparent; border: 3px solid var(--cor-borda); border-radius: var(--raio);
+    }
+    #avisos { margin-top: 1rem; font-size: 1.125rem; min-height: 1.75rem; }
+    #avisos.erro { color: var(--cor-alerta); font-weight: 700; }
+
+    /* lembrete de emergencia no rodape do conteudo */
+    .emergencia {
+      margin-top: 2rem; padding: 1rem 1.25rem; border-radius: var(--raio);
+      border: 3px solid var(--cor-alerta); font-size: 1.125rem;
+    }
+
+    /* no celular os botoes de acao empilham e o titulo diminui um pouco */
+    @media (max-width: 40rem) {
+      .acoes { grid-template-columns: 1fr; }
+      h1 { font-size: 1.75rem; }
+    }
+    /* so anima as trocas de cor pra quem nao pediu menos movimento no sistema */
+    @media (prefers-reduced-motion: no-preference) {
+      .ajuste, .chip, .acao, .botao-enviar { transition: background-color .15s, border-color .15s; }
+    }

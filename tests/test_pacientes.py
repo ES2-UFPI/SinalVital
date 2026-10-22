@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.database import Base, get_db
 from app.main import app
-from app.models import Paciente
+from app.database.models.models import Paciente
 from app.seed import PACIENTES_DEMONSTRACAO, popular_pacientes
 
 
