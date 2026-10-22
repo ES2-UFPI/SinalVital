@@ -14,14 +14,16 @@ Padrão arquitetural seguido:
     Apresentação (router) → Domínio (query no ORM) → Persistência (SQLAlchemy)
 """
 
-from typing import Literal, Optional
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from ..database.database import get_db
-from ..database.models.models import EventoHistorico, Paciente
-from ..api.schemas.schemas import EventoHistoricoResposta, HistoricoUnificadoResposta
+from app.database import get_db
+from app.database.models import EventoHistorico, Paciente
+from app.api.schemas.paciente import (EventoHistoricoResposta, HistoricoUnificadoResposta,
+                                     PacienteEntrada, PacienteResposta)
 
 router = APIRouter(
     prefix="/pacientes",
@@ -83,8 +85,9 @@ def listar_historico_paciente(
 
     eventos = query.all()
 
-    # 4. Monta resposta usando os schemas Pydantic definidos em schemas.py
+    # 4. Monta resposta usando os schemas Pydantic definidos em schemas
     return HistoricoUnificadoResposta(
+        id=paciente.id,
         nome=paciente.nome,
         email=paciente.email,
         idade=paciente.idade,
@@ -95,3 +98,22 @@ def listar_historico_paciente(
         ],
     )
 
+
+
+@router.post("", response_model=PacienteResposta, status_code=status.HTTP_201_CREATED)
+def criar_paciente(dados: PacienteEntrada, db: Session = Depends(get_db)):
+    if db.query(Paciente).filter(Paciente.email == str(dados.email)).first():
+        raise HTTPException(status_code=409, detail="Já existe um paciente com esse e-mail.")
+
+    paciente = Paciente(**dados.model_dump())
+    db.add(paciente)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        # Outra requisição pode ter cadastrado o mesmo e-mail após a consulta.
+        if db.query(Paciente).filter(Paciente.email == str(dados.email)).first():
+            raise HTTPException(status_code=409, detail="Já existe um paciente com esse e-mail.")
+        raise
+    db.refresh(paciente)
+    return paciente

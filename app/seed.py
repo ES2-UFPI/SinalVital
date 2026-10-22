@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from .database import Base, engine, SessionLocal
 from .database.models.models import Paciente
+from .database.models import Paciente
 
 
 PACIENTES_DEMONSTRACAO = (
