@@ -44,8 +44,9 @@ TestingSessionLocal = sessionmaker(
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(autouse=True)
-def setup_tables():
+def setup_tables(monkeypatch):
     """Cria as tabelas antes de cada teste e as destrói ao final."""
+    monkeypatch.setattr("app.main.engine", engine_test)
     Base.metadata.create_all(bind=engine_test)
     yield
     Base.metadata.drop_all(bind=engine_test)

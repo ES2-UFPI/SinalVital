@@ -198,4 +198,3 @@ class TestHistoricoPaciente:
         assert len(eventos) == 3
         tipos = {e["tipo_evento"] for e in eventos}
         assert tipos == {"triagem", "atendimento", "monitoramento"}
-

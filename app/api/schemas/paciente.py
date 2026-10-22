@@ -29,35 +29,20 @@ class EventoHistoricoResposta(BaseModel):
 class PacienteEntrada(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
     # ESQUEMA PARA COLOCAR DADOS DE UM PACIENTE NO BANCO DE DADOS
-<<<<<<<< HEAD:app/api/schemas/schemas.py
     nome: str = Field(..., min_length=1, max_length=120, examples=["Raimundo"])
     email: EmailStr = Field(..., max_length=120, examples=["raimundo@sinalvital.com"])
     idade:Optional[int] = Field(None, ge=0, examples=[65])
     condicao_cronica: Optional[str] = Field(None, max_length=200, examples=["Cardiopatia e hipertensao"])
-========
-    nome: str = Field(..., examples=["Raimundo"])
-    email: str = Field(..., examples=["raimundo@sinalvital.com"])
-    idade: Optional[int] = Field(None, examples=[65])
-    condicao_cronica: Optional[str] = Field(None, examples=["Cardiopatia e hipertensao"])
->>>>>>>> feat/001-03-historico-paciente:app/api/schemas/paciente.py
 
 
 class PacienteResposta(BaseModel):
     # ESQUEMA DE GET PARA VISUALIZAR OS DADOS DO PACIENTE
-<<<<<<<< HEAD:app/api/schemas/schemas.py
     model_config=ConfigDict(from_attributes=True)
-    
+
     id: int
     nome:str
     email:str
     idade:Optional[int] = None
-========
-    model_config = ConfigDict(from_attributes=True)
-
-    nome: str
-    email: str
-    idade: Optional[int] = None
->>>>>>>> feat/001-03-historico-paciente:app/api/schemas/paciente.py
     condicao_cronica: Optional[str] = None
     criado_em: datetime
 
@@ -65,13 +50,12 @@ class PacienteResposta(BaseModel):
 class HistoricoUnificadoResposta(PacienteResposta):
     # ESQUEMA CASO ALGUEM REQUISITE UM GET PARA VISUALIZAR pacientes/{id}/historico
     model_config = ConfigDict(from_attributes=True)
-<<<<<<<< HEAD:app/api/schemas/schemas.py
     eventos_historico:list[EventoHistoricoResposta] = []
 
 
 class TriagemEntrada(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
-    
+
     paciente_id: int = Field(..., ge=1, examples = [1])
     texto_sintomas: str = Field(..., min_length=1, examples=["Dor no peito e Falta de ar ha 30 minutos"])
 
@@ -81,8 +65,8 @@ class ResultadoClassificacao(BaseModel):
     urgencia:str = Field(default= "baixa", examples=["emergencia"] )
     especialidade:str =  Field(default="clinica_geral", examples= ["Cardiologia"])
     justificativa:Optional[str] = Field(None, examples=["Classificado como emergencia por mencinar dor no peito e falta de ar."])
-    
-    
+
+
 class TriagemResposta(BaseModel):
     # ESQUEMA DE SAIDA DA TRIAGEM SALVA NO BANCO DE DADOS
     model_config = ConfigDict(from_attributes=True)
@@ -93,7 +77,3 @@ class TriagemResposta(BaseModel):
     especialidade: str
     justificativa: Optional[str] = None
     criado_em: datetime
-========
-    eventos_historico: list[EventoHistoricoResposta] = []
-
->>>>>>>> feat/001-03-historico-paciente:app/api/schemas/paciente.py

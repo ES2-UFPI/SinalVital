@@ -2,11 +2,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
-<<<<<<<< HEAD:app/database/models/models.py
-from ..database import Base
-========
 from app.database import Base
->>>>>>>> feat/001-03-historico-paciente:app/database/models/paciente.py
 
 
 class Paciente(Base):
@@ -30,14 +26,10 @@ class Paciente(Base):
         cascade="all, delete-orphan",
         order_by="desc(EventoHistorico.criado_em)"
     )
-<<<<<<<< HEAD:app/database/models/models.py
-    
-    
-    triagens= relationship("Triagem", back_populates= "paciente", cascade="all, delete-orphan", order_by="desc(Triagem.criado_em)")
-    
-========
 
->>>>>>>> feat/001-03-historico-paciente:app/database/models/paciente.py
+
+    triagens= relationship("Triagem", back_populates= "paciente", cascade="all, delete-orphan", order_by="desc(Triagem.criado_em)")
+
 
 class EventoHistorico(Base):
     # ENTIDADE PARA O HISTORICO DE CADA PACIENTE
@@ -47,27 +39,9 @@ class EventoHistorico(Base):
     paciente_id = Column(Integer, ForeignKey("pacientes.id", ondelete="CASCADE"), nullable=False, index=True)
     tipo_evento = Column(String(50), nullable=False)
     descricao = Column(Text, nullable=False)
-    urgencia = Column(String(30), nullable=False, default="baixa") 
+    urgencia = Column(String(30), nullable=False, default="baixa")
     especialidade = Column(String(100), nullable=False, default="clinica_geral")
     justificativa = Column(Text, nullable=True)
     criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     paciente = relationship("Paciente", back_populates="eventos_historico")
-<<<<<<<< HEAD:app/database/models/models.py
-    
-    
-    
-class Triagem(Base):    # chave estrangeira de cliente
-    __tablename__ = "triagens"
-    id = Column(Integer, primary_key=True, index=True)
-    paciente_id = Column(Integer, ForeignKey("pacientes.id", ondelete="CASCADE"), nullable=False, index=True) 
-    texto_sintomas = Column(Text, nullable=False)
-    urgencia = Column(String(30), nullable=False, default="baixa") 
-    especialidade = Column(String(100), nullable=False, default="clinica_geral")
-    justificativa = Column(Text, nullable=True)
-    criado_em = Column(DateTime, default = lambda:datetime.now(timezone.utc), nullable=False)
-    
-    paciente = relationship("Paciente", back_populates="triagens")
-========
-
->>>>>>>> feat/001-03-historico-paciente:app/database/models/paciente.py
