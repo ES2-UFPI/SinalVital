@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from .database import Base, engine
+from .database.database import Base, engine
 from .routers import pacientes as pacientes_router
 from contextlib import asynccontextmanager
 
@@ -16,9 +16,9 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .database import Base, engine, get_db
-from .models import Paciente
-from .schemas import PacienteEntrada, PacienteResposta
+from .database.database  import Base, engine, get_db
+from .database.models.models import Paciente
+from .api.schemas.schemas import PacienteEntrada, PacienteResposta
 
 
 @asynccontextmanager

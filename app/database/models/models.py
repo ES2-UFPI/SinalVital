@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
-from .database import Base
+from ..database import Base
 
 
 class Paciente(Base):
@@ -29,6 +29,9 @@ class Paciente(Base):
         
     )
     
+    
+    triagens= relationship("Triagem", back_populates= "paciente", cascade="all, delete-orphan", order_by="desc(Triagem.criado_em)")
+    
 
 class EventoHistorico(Base):
     # ENTIDADE PARA O HISTORICO DE CADA PACIENTE
@@ -46,3 +49,16 @@ class EventoHistorico(Base):
     
     paciente = relationship("Paciente", back_populates="eventos_historico")
     
+    
+    
+class Triagem(Base):    # chave estrangeira de cliente
+    __tablename__ = "triagens"
+    id = Column(Integer, primary_key=True, index=True)
+    paciente_id = Column(Integer, ForeignKey("pacientes.id", ondelete="CASCADE"), nullable=False, index=True) 
+    texto_sintomas = Column(Text, nullable=False)
+    urgencia = Column(String(30), nullable=False, default="baixa") 
+    especialidade = Column(String(100), nullable=False, default="clinica_geral")
+    justificativa = Column(Text, nullable=True)
+    criado_em = Column(DateTime, default = lambda:datetime.now(timezone.utc), nullable=False)
+    
+    paciente = relationship("Paciente", back_populates="triagens")
