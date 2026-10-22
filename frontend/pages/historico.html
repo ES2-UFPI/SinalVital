@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meu histórico – SinalVital</title>
+<link rel="stylesheet" href="../assets/css/base.css">
+<link rel="stylesheet" href="../assets/css/historico_style.css">
+</head>
+<body>
+<main>
+  <h1>Meu histórico</h1>
+  <p class="sub" id="paciente">Consultas e triagens, da mais recente para a mais antiga.</p>
+  <button id="recarregar" type="button">Atualizar</button>
+  <div id="aviso" role="status" aria-live="polite" hidden></div>
+  <ol class="linha" id="linha" aria-label="Linha do tempo do histórico"></ol>
+</main>
+
+<script src="../assets/js/historico.js" defer></script>
+</body>
+</html>

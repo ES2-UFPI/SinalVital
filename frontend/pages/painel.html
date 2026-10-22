@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-contraste="normal">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SinalVital – Meu painel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/base.css">
+  <link rel="stylesheet" href="../assets/css/painel_styles.css"
+  
+</head>
+<body>
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="topo">
+    <div class="topo-interno">
+      <div class="marca">Sinal<span>Vital</span></div>
+      <div class="ajustes" role="group" aria-label="Ajustes de leitura">
+        <button type="button" class="ajuste" id="btn-diminuir" aria-label="Diminuir o tamanho da letra">A-</button>
+        <button type="button" class="ajuste" id="btn-aumentar" aria-label="Aumentar o tamanho da letra">A+</button>
+        <button type="button" class="ajuste" id="btn-contraste" aria-pressed="false">Alto contraste</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="conteudo">
+    <h1 id="saudacao">Olá!</h1>
+    <p class="apoio">O que você precisa agora?</p>
+
+    <nav class="acoes" aria-label="Ações principais">
+      <a class="acao acao-principal" href="#relato" id="ir-relato">
+        <strong>Relatar sintomas</strong>
+        <span>Conte como você está se sentindo</span>
+      </a>
+      <a class="acao acao-secundaria" href="historico.html" id="ir-historico">
+        <strong>Ver meu histórico clínico</strong>
+        <span>Suas consultas e triagens anteriores</span>
+      </a>
+    </nav>
+
+    <section class="bloco" aria-labelledby="titulo-relato">
+      <h2 id="titulo-relato">Como você está se sentindo?</h2>
+      <p class="apoio" style="margin-bottom:0">Toque nos sintomas que você sente. Se quiser, escreva mais detalhes.</p>
+
+      <ul class="chips" aria-label="Sintomas frequentes">
+        <li><button type="button" class="chip chip-urgente" data-sintoma="Dor no peito">Dor no peito</button></li>
+        <li><button type="button" class="chip chip-urgente" data-sintoma="Falta de ar">Falta de ar</button></li>
+        <li><button type="button" class="chip" data-sintoma="Tontura">Tontura</button></li>
+        <li><button type="button" class="chip" data-sintoma="Visão embaçada">Visão embaçada</button></li>
+        <li><button type="button" class="chip" data-sintoma="Febre">Febre</button></li>
+        <li><button type="button" class="chip" data-sintoma="Dor de cabeça">Dor de cabeça</button></li>
+      </ul>
+
+      <form id="relato" novalidate>
+        <label for="texto-relato">Seu relato</label>
+        <textarea id="texto-relato" name="relato" aria-describedby="avisos"
+          placeholder="Ex.: dor no peito há 30 minutos"></textarea>
+        <div class="envio">
+          <button type="submit" class="botao-enviar">Enviar relato</button>
+          <button type="button" class="botao-limpar" id="btn-limpar">Limpar</button>
+        </div>
+        <!-- aqui entram o feedback visual da issue 20 e o card de resultado da issue 12 -->
+        <div id="avisos" role="status" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <p class="emergencia">
+      <strong>Em caso de emergência, ligue 192 (SAMU).</strong>
+      O SinalVital não substitui o atendimento de urgência.
+    </p>
+  </main>
+<script src = "../assets/js/painel.js" defer></script>
+
+</body>
+</html>
