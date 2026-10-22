@@ -19,9 +19,9 @@ from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from ..database import get_db
-from ..models import EventoHistorico, Paciente
-from ..schemas import EventoHistoricoResposta, HistoricoUnificadoResposta
+from ..database.database import get_db
+from ..database.models.models import EventoHistorico, Paciente
+from ..api.schemas.schemas import EventoHistoricoResposta, HistoricoUnificadoResposta
 
 router = APIRouter(
     prefix="/pacientes",

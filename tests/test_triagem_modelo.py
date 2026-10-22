@@ -3,9 +3,9 @@ from pydantic import ValidationError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.database import Base
-from app.models import Paciente, Triagem
-from app.schemas import TriagemEntrada, ResultadoClassificacao, TriagemResposta
+from app.database.database import Base
+from app.database.models.models import Paciente, Triagem
+from app.api.schemas.schemas import TriagemEntrada, ResultadoClassificacao, TriagemResposta
 
 
 @pytest.fixture
