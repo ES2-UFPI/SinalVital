@@ -14,7 +14,7 @@ Padrão arquitetural seguido:
     Apresentação (router) → Domínio (query no ORM) → Persistência (SQLAlchemy)
 """
 
-from typing import Literal, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -83,7 +83,7 @@ def listar_historico_paciente(
 
     eventos = query.all()
 
-    # 4. Monta resposta usando os schemas Pydantic definidos em schemas.py
+    # 4. Monta resposta usando os schemas Pydantic definidos em schemas
     return HistoricoUnificadoResposta(
         nome=paciente.nome,
         email=paciente.email,
