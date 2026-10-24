@@ -15,13 +15,15 @@ Padrão arquitetural seguido:
 """
 
 from typing import Optional
+from collections import Counter
+from datetime import timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.database.models import EventoHistorico, Paciente
+from app.database.models import EventoHistorico, Paciente, Triagem
 from app.api.schemas.paciente import (EventoHistoricoResposta, HistoricoUnificadoResposta,
                                      PacienteEntrada, PacienteResposta)
 
@@ -83,7 +85,40 @@ def listar_historico_paciente(
     if tipo_evento is not None:
         query = query.filter(EventoHistorico.tipo_evento == tipo_evento)
 
-    eventos = query.all()
+    eventos = [EventoHistoricoResposta.model_validate(e) for e in query.all()]
+
+    # O histórico é uma visão unificada das duas fontes. Inclui as triagens
+    # antigas e novas sem copiar registros ou executar migrações no banco.
+    # Consome correspondências uma a uma para preservar relatos repetidos.
+    def instante(data):
+        return data.replace(tzinfo=timezone.utc) if data.tzinfo is None else data.astimezone(timezone.utc)
+
+    if tipo_evento in (None, "triagem"):
+        registrados = Counter(
+            (e.descricao, instante(e.criado_em))
+            for e in eventos if e.tipo_evento == "triagem"
+        )
+        urgencias = {
+            "vermelho": "emergencia", "laranja": "alta", "amarelo": "media",
+            "verde": "baixa", "azul": "baixa",
+        }
+        triagens = db.query(Triagem).filter(Triagem.paciente_id == paciente_id).all()
+        for triagem in triagens:
+            chave = (triagem.texto_sintomas, instante(triagem.criado_em))
+            if registrados[chave]:
+                registrados[chave] -= 1
+                continue
+            eventos.append(EventoHistoricoResposta(
+                id=triagem.id,
+                paciente_id=triagem.paciente_id,
+                tipo_evento="triagem",
+                descricao=triagem.texto_sintomas,
+                urgencia=urgencias.get(triagem.classificacao, triagem.urgencia),
+                especialidade=triagem.especialidade,
+                justificativa=triagem.justificativa,
+                criado_em=triagem.criado_em,
+            ))
+    eventos.sort(key=lambda e: instante(e.criado_em))
 
     # 4. Monta resposta usando os schemas Pydantic definidos em schemas
     return HistoricoUnificadoResposta(
@@ -93,9 +128,7 @@ def listar_historico_paciente(
         idade=paciente.idade,
         condicao_cronica=paciente.condicao_cronica,
         criado_em=paciente.criado_em,
-        eventos_historico=[
-            EventoHistoricoResposta.model_validate(e) for e in eventos
-        ],
+        eventos_historico=eventos,
     )
 
 
