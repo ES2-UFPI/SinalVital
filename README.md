@@ -99,3 +99,48 @@ separadamente.
 
 Os testes utilizam SQLite temporário, separado do banco da aplicação.
 Cobrem cadastro, validação, duplicidade de e-mail e repetição do seed.
+
+## Interface da Sprint 1 — issue #22
+
+Com a API em execução, abra http://127.0.0.1:8000/.
+O frontend é servido pelo próprio FastAPI, sem etapa de build ou dependências JavaScript.
+
+- `frontend/index.html`: entrada e atalhos do paciente.
+- `frontend/pages/`: cadastro, relato de sintomas e histórico.
+- `frontend/assets/css/base.css`: tokens de cores, tipografia, componentes, responsividade e alto contraste compartilhados.
+- `frontend/assets/js/app.js`: controles de leitura e integração com a API.
+
+As páginas compartilham cabeçalho, navegação, foco visível e controles A−/A+
+(18 a 24 px de tamanho base). O contraste e o tamanho são lembrados no navegador.
+O número do paciente é mantido apenas na aba; dados clínicos não são gravados no
+armazenamento do navegador. Também é possível informar `?paciente=ID` nas páginas
+de triagem e histórico. Use o número devolvido pelo cadastro, sem presumir IDs do seed.
+
+Roteiro de apresentação: cadastrar um paciente fictício, guardar o número,
+continuar para a triagem, selecionar um sintoma e enviar. O resultado mostra a
+classificação por cor **e texto**, prioridade e justificativa realmente devolvidas
+pela API. Depois, consultar o histórico pelo mesmo número.
+
+O histórico unifica os eventos de `eventos_historico` com as triagens salvas em
+`triagens`, incluindo relatos anteriores à criação do frontend. A consulta não
+altera o banco e evita repetir eventos de triagem já representados com o mesmo
+relato e instante. A API mantém a ordem crescente; a interface mostra os mais
+recentes primeiro e oferece filtros por tipo. O número do paciente deve ser o
+mesmo no envio e na consulta. O endpoint de triagem não retorna especialidade;
+o histórico exibe o valor disponível no registro, sem inferir uma especialidade.
+A nova navegação utiliza `frontend/pages/historico.html` com dados reais da API.
+
+A demonstração usa regras locais por palavras-chave e não realiza diagnóstico.
+
+### Banco antigo: erro ao enviar sintomas
+
+Se o SQLite foi criado antes da integração da triagem, execute uma vez:
+
+```powershell
+.\venv\Scripts\python.exe -m scripts.atualizar_banco
+```
+
+O comando utiliza o `DATABASE_URL` configurado, faz um backup SQLite consistente
+(`*.backup-*.db`) e adiciona as colunas `estrategia`, `classificacao` e `prioridade`
+ausentes. Registros anteriores são preservados. Pode ser executado novamente sem
+duplicar alterações. Reinicie o servidor após a atualização e recarregue o navegador.
