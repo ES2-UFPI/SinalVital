@@ -64,11 +64,14 @@ from app.ia_service import ClassificadorFactory
 classificador = ClassificadorFactory.criar()
 resultado = classificador.classificar("dor no peito e falta de ar")
 # {"urgencia": "emergencia", "especialidade": "cardiologia",
-#  "justificativa": "Classificado como emergencia por mencionar: dor no peito, falta de ar."}
+#  "justificativa": "Classificado como emergência por mencionar: dor no peito, falta de ar. "
+#                   "Especialidade sugerida: cardiologia (termos: ...)"}
 ```
 
-O mock aplica regras iniciais por palavras-chave, priorizando emergência sobre
-alta e usando baixa como padrão. Retorna `urgencia`, `especialidade` e
+O mock delega para `app/triagem/regras.py` (issue #14): ignora caixa e acentos,
+desconsidera termos negados ("sem dor no peito") e usa os níveis emergência, alta,
+média e baixa (padrão). A estratégia `palavras_chave` da rota de triagem usa a mesma
+busca de termos, mantendo as cores da dev. Retorna `urgencia`, `especialidade` e
 `justificativa`; relatos vazios geram `ValueError`. É uma simulação didática.
 A expansão das regras pertence à [005-03], e a exposição pelo endpoint
 `POST /triagens` à [005-04]. Esta etapa não adiciona uma rota de classificação.

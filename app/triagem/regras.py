@@ -5,7 +5,7 @@ e não substitui o SAMU (192). Em dúvida, o resultado deve subir de nível, nun
 descer. Os dicionários devem ser revisados pelo time/Product Owner.
 
 Valores de urgência: emergencia > alta > media > baixa (ordem do motor de fila).
-Especialidades: cardiologia, oftalmologia, clinica_geral (casos das personas).
+Especialidades: cardiologia, oftalmologia, dermatologia, clinica_geral.
 """
 import re
 import unicodedata
@@ -15,7 +15,7 @@ from typing import Dict, List, Tuple
 NIVEIS = ("emergencia", "alta", "media", "baixa")  # do mais ao menos urgente
 ROTULO_NIVEL = {"emergencia": "emergência", "alta": "alta", "media": "média", "baixa": "baixa"}
 ROTULO_ESPECIALIDADE = {"cardiologia": "cardiologia", "oftalmologia": "oftalmologia",
-                        "clinica_geral": "clínica geral"}
+                        "dermatologia": "dermatologia", "clinica_geral": "clínica geral"}
 ESPECIALIDADE_PADRAO = "clinica_geral"
 URGENCIA_PADRAO = "baixa"
 
@@ -49,6 +49,7 @@ TERMOS_ESPECIALIDADE: Dict[str, Tuple[str, ...]] = {
     "oftalmologia": (
         "olho", "olhos", "visao", "vista", "colirio", "ocular", "palpebra",
     ),
+    "dermatologia": ("pele", "mancha", "manchas", "erupcao"),
 }
 
 # Como o termo aparece na justificativa (com acento); os demais saem como no dicionário.
@@ -63,7 +64,7 @@ EXIBICAO = {
     "sensibilidade a luz": "sensibilidade à luz", "diarreia": "diarreia", "nausea": "náusea",
     "ardencia nos olhos": "ardência nos olhos", "cansaco": "cansaço", "coracao": "coração",
     "visao": "visão", "colirio": "colírio", "palpebra": "pálpebra", "paralisia": "paralisia",
-    "ausencia": "ausência", "hemorragia": "hemorragia",
+    "ausencia": "ausência", "hemorragia": "hemorragia", "erupcao": "erupção",
 }
 
 _NEGADORES = frozenset({"sem", "nao", "nunca", "nega", "negou", "ausencia"})
@@ -112,6 +113,15 @@ def _unicos_na_ordem(achados: List[Tuple[int, int, str]]) -> Tuple[str, ...]:
         if termo not in vistos:
             vistos.append(termo)
     return tuple(vistos)
+
+
+def encontrar_termos(texto: str, termos: Tuple[str, ...]) -> Tuple[str, ...]:
+    """Termos (aceita acento) presentes no relato, na ordem em que aparecem.
+
+    Ignora caixa, acentos e pontuação, termos negados ("sem", "não"...) e termos
+    contidos em outro mais longo. Os termos voltam normalizados (sem acento).
+    """
+    return _unicos_na_ordem(_ocorrencias(normalizar(texto), tuple(normalizar(t) for t in termos)))
 
 
 def classificar_texto(texto: str) -> ResultadoClassificacao:
