@@ -1,0 +1,26 @@
+/* Componentes de feedback visual (issue #20): banners e modal de carregamento. */
+.sv-banners { position:fixed; top:12px; left:12px; right:12px; z-index:1000; display:flex;
+              flex-direction:column; gap:10px; align-items:center; pointer-events:none; }
+.sv-banner { pointer-events:auto; width:100%; max-width:760px; display:flex; align-items:center; gap:12px;
+             padding:14px 16px; border:3px solid #111; border-radius:8px; background:#fff; color:#111;
+             font-family:Arial, Helvetica, sans-serif; font-size:1.25rem; line-height:1.4; font-weight:bold; }
+.sv-banner .sv-icone { flex:none; width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+                       border:3px solid #111; border-radius:50%; }
+.sv-banner .sv-texto { flex:1; }
+.sv-banner button { flex:none; font:inherit; min-height:44px; padding:6px 14px; border:3px solid #111;
+                    background:#fff; color:#111; border-radius:8px; cursor:pointer; }
+.sv-banner button:focus-visible { outline:4px solid #0645ad; outline-offset:2px; }
+.sv-banner.sucesso { background:#eaf7ea; }
+.sv-banner.erro { background:#fff0f0; }
+.sv-banner.info { background:#eef3fb; }
+
+.sv-modal-fundo { position:fixed; inset:0; z-index:1100; display:flex; align-items:center; justify-content:center;
+                  padding:20px; background:rgba(255,255,255,.85); }
+.sv-modal-fundo[hidden] { display:none; }
+.sv-modal { max-width:420px; width:100%; padding:28px 24px; text-align:center; background:#fff; color:#111;
+            border:3px solid #111; border-radius:8px; font-family:Arial, Helvetica, sans-serif;
+            font-size:1.5rem; font-weight:bold; line-height:1.4; }
+.sv-giro { width:48px; height:48px; margin:0 auto 16px; border:6px solid #ccc; border-top-color:#111;
+           border-radius:50%; animation:sv-giro 1s linear infinite; }
+@keyframes sv-giro { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .sv-giro { animation:none; border-top-color:#111; border-right-color:#111; } }

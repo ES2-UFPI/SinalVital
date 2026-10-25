@@ -12,6 +12,18 @@ def test_paginas_e_assets_disponiveis(client):
     assert client.get('/assets/js/app.js').status_code == 200
 
 
+def test_componentes_de_feedback_disponiveis(client):
+    for path in ("/pages/cadastro.html", "/pages/triagem.html", "/pages/historico.html"):
+        html = client.get(path).text
+        assert '/assets/css/feedback.css' in html
+        assert '/assets/js/feedback.js' in html
+        assert html.index('/assets/js/feedback.js') < html.index('/assets/js/app.js')
+    assert client.get('/assets/css/feedback.css').status_code == 200
+    js = client.get('/assets/js/feedback.js')
+    assert js.status_code == 200
+    assert 'const Feedback' in js.text
+
+
 def test_fluxo_api_utilizado_pelo_frontend(client):
     cadastro = client.post('/pacientes', json={'nome': 'Paciente Demo', 'email': 'demo@example.com'})
     assert cadastro.status_code == 201
