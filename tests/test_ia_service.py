@@ -53,6 +53,17 @@ def test_mock_contrato_e_regras_iniciais(texto, urgencia, especialidade):
     assert resultado == classificador.classificar(texto)
 
 
+@pytest.mark.parametrize("texto,urgencia,especialidade", [
+    ("desmaiei", "emergencia", "clinica_geral"),
+    ("dor FORTE no peito", "emergencia", "cardiologia"),
+    ("Sem dor no peito, só tosse", "media", "clinica_geral"),
+    ("tosse e olho vermelho", "media", "oftalmologia"),
+])
+def test_mock_usa_regras_da_issue_14(texto, urgencia, especialidade):
+    resultado = MockClassificador().classificar(texto)
+    assert (resultado["urgencia"], resultado["especialidade"]) == (urgencia, especialidade)
+
+
 def test_justificativa_identifica_termos():
     resultado = MockClassificador().classificar("dor no peito e falta de ar")
     assert "dor no peito, falta de ar" in resultado["justificativa"]

@@ -6,6 +6,8 @@ from typing import Literal, TypedDict
 
 from dotenv import load_dotenv
 
+from app.triagem.regras import classificar_texto
+
 
 class ResultadoClassificacao(TypedDict):
     urgencia: Literal["emergencia", "alta", "media", "baixa"]
@@ -23,34 +25,14 @@ class Classificador(ABC):
 
 
 class MockClassificador(Classificador):
-    """Simulação inicial e determinística, sem acesso a serviços externos."""
+    """Simulação determinística, sem serviços externos; usa as regras de app.triagem.regras."""
 
     def classificar(self, texto_sintomas: str) -> ResultadoClassificacao:
-        texto = texto_sintomas.strip().lower()
-        if not texto:
+        if not (texto_sintomas or "").strip():
             raise ValueError("O relato de sintomas não pode estar vazio.")
-
-        termos = [termo for termo in ("dor no peito", "falta de ar") if termo in texto]
-        if termos:
-            urgencia = "emergencia"
-        else:
-            termos = [termo for termo in ("febre", "dor forte") if termo in texto]
-            urgencia = "alta" if termos else "baixa"
-
-        if "peito" in texto or "coração" in texto:
-            especialidade = "cardiologia"
-        elif "pele" in texto or "mancha" in texto:
-            especialidade = "dermatologia"
-        else:
-            especialidade = "clinica_geral"
-
-        justificativa = (
-            f"Classificado como {urgencia} por mencionar: {', '.join(termos)}."
-            if termos else
-            "Classificado como baixa pelas regras iniciais do mock, sem palavras-chave de maior urgência."
-        )
-        return {"urgencia": urgencia, "especialidade": especialidade,
-                "justificativa": justificativa}
+        resultado = classificar_texto(texto_sintomas)
+        return {"urgencia": resultado.urgencia, "especialidade": resultado.especialidade,
+                "justificativa": resultado.justificativa}
 
 
 class ClassificadorFactory:
