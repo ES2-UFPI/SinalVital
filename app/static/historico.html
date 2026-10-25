@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Meu histórico – SinalVital</title>
-<link rel="stylesheet" href="feedback.css">
 <style>
   :root { --fundo:#fff; --texto:#111; --borda:#111; --linha:#444; }
   * { box-sizing: border-box; }
@@ -42,7 +41,6 @@
   <ol class="linha" id="linha" aria-label="Linha do tempo do histórico"></ol>
 </main>
 
-<script src="feedback.js"></script>
 <script>
 // true = usa os dados de exemplo abaixo; false = busca GET /pacientes/{id}/historico (issue #18).
 const USAR_DADOS_EXEMPLO = true;
@@ -110,8 +108,7 @@ function renderizar(eventos) {
 
 async function carregar() {
   $("linha").replaceChildren();
-  aviso("", false);
-  const fechar = Feedback.carregando("Carregando seu histórico…");
+  aviso("Carregando seu histórico…", false);
   try {
     let dados;
     if (USAR_DADOS_EXEMPLO) dados = DADOS_EXEMPLO;
@@ -126,9 +123,7 @@ async function carregar() {
     aviso("", false);
     renderizar(eventos);
   } catch (e) {
-    Feedback.erro("Não foi possível carregar seu histórico. Tente novamente em instantes.");
-  } finally {
-    fechar();
+    aviso("Não foi possível carregar seu histórico. Tente novamente em instantes.", true);
   }
 }
 
