@@ -4,9 +4,9 @@ from app.domain.triagem.strategies.palavras_chave import PalavrasChaveStrategy
 
 
 @pytest.mark.parametrize("relato, classificacao, prioridade", [
-    ("Estou com dor no peito", "laranja", 2),
-    ("DOR NO PEITO!!!", "laranja", 2),
-    ("dór no péito", "laranja", 2),
+    ("Estou com dor no peito", "vermelho", 1),
+  ("DOR NO PEITO!!!", "vermelho", 1),
+  ("dór no péito", "vermelho", 1),
     ("Não consigo respirar direito", "laranja", 2),
     ("Meu pai desmaiou", "vermelho", 1),
     ("desmaiei agora", "vermelho", 1),

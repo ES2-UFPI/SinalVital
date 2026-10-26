@@ -5,8 +5,9 @@ from app.triagem.regras import encontrar_termos, normalizar
 # termos negados ("sem dor no peito"); ver app/triagem/regras.py.
 REGRAS = [
     ("vermelho", 1, ["parada cardíaca", "inconsciente", "convulsão", "sem respirar", "hemorragia",
-                     "sangramento intenso", "desmaio", "desmaiei", "desmaiou", "perda de consciência"]),
-    ("laranja", 2, [ "dor no peito", "dor forte no peito", "aperto no peito", "pressão no peito",
+                     "sangramento intenso", "desmaio", "desmaiei", "desmaiou", "perda de consciência", "dor no peito",
+                     "dor forte no peito", "aperto no peito", "pressão no peito"]),
+    ("laranja", 2, [ 
                     "falta de ar", "avc", "dificuldade para respirar", "não consigo respirar",
                     "paralisia", "fala arrastada", "perda de visão", "perda súbita de visão", "tontura"]),
     ("amarelo", 3, ["febre alta", "vômito", "dor intensa", "fratura"]),

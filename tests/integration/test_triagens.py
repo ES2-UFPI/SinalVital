@@ -14,8 +14,8 @@ def test_triagem_integrada_persiste_no_mesmo_banco(client, db_session):
     assert resposta.status_code == 201
 
     dados = resposta.json()
-    assert dados["classificacao"] == "laranja"
-    assert dados["prioridade"] == 2
+    assert dados["classificacao"] == "vermelho"
+    assert dados["prioridade"] == 1
     assert dados["especialidade"] == "cardiologia"
     assert dados["urgencia"] == "emergencia"
 

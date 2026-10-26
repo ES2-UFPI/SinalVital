@@ -32,12 +32,12 @@ def test_fluxo_api_utilizado_pelo_frontend(client):
         'relato': 'Estou com dor no peito', 'estrategia': 'palavras_chave',
     })
     assert triagem.status_code == 201
-    assert triagem.json()['classificacao'] == 'laranja'
+    assert triagem.json()['classificacao'] == 'vermelho'
     historico = client.get(f'/pacientes/{paciente_id}/historico')
     assert historico.status_code == 200
     assert historico.json()['nome'] == 'Paciente Demo'
     eventos = historico.json()['eventos_historico']
     assert len(eventos) == 1
     assert eventos[0]['descricao'] == 'Estou com dor no peito'
-    assert eventos[0]['urgencia'] == 'alta'
+    assert eventos[0]['urgencia'] == 'emergencia'
     assert eventos[0]['justificativa'] == triagem.json()['justificativa']
