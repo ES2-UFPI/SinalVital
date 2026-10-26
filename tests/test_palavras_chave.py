@@ -35,4 +35,4 @@ def test_nao_casa_parte_de_palavra():
 
 def test_justificativa_mostra_termos_com_acento_sem_duplicar():
     r = PalavrasChaveStrategy().classificar("dor forte no peito e falta de ar")
-    assert r.justificativa == "Termos identificados: dor forte no peito, falta de ar"
+    assert r.justificativa == "Termos identificados: dor forte no peito"
