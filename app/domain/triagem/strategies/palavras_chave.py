@@ -8,7 +8,7 @@ REGRAS = [
                      "sangramento intenso", "desmaio", "desmaiei", "desmaiou", "perda de consciência"]),
     ("laranja", 2, ["dor no peito", "dor forte no peito", "aperto no peito", "pressão no peito",
                     "falta de ar", "avc", "dificuldade para respirar", "não consigo respirar",
-                    "paralisia", "fala arrastada", "perda de visão", "perda súbita de visão"]),
+                    "paralisia", "fala arrastada", "perda de visão", "perda súbita de visão", "tontura"]),
     ("amarelo", 3, ["febre alta", "vômito", "dor intensa", "fratura"]),
     ("verde", 4, ["febre", "dor de cabeça", "tosse", "diarreia"]),
 ]

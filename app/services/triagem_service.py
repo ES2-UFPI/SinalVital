@@ -1,7 +1,7 @@
 from app.database.models.triagem import Triagem
 from app.domain.triagem.factory import TriageClassifierFactory
 from app.repositories.triagem_repository import TriagemRepository
-from app.triagem.regras import classificar_texto
+from app.domain.triagem.strategies.classificador import ClassificadorFactory
 
 
 class PacienteNaoEncontradoError(Exception):
@@ -20,8 +20,8 @@ class TriagemService:
 
         classificador = TriageClassifierFactory.criar(estrategia)
         resultado = classificador.classificar(relato)
-
-        classificacao_detalhada = classificar_texto(relato)
+        classificador_ia_mock = ClassificadorFactory.criar()
+        classificacao_detalhada = classificador_ia_mock.classificar(relato)
 
         triagem = Triagem(
             paciente_id=paciente_id,
@@ -29,8 +29,8 @@ class TriagemService:
             estrategia=classificador.nome,
             classificacao=resultado.classificacao,
             prioridade=resultado.prioridade,
-            urgencia=classificacao_detalhada.urgencia,
-            especialidade=classificacao_detalhada.especialidade,
+            urgencia=classificacao_detalhada["urgencia"],
+            especialidade=classificacao_detalhada["especialidade"],
             justificativa=resultado.justificativa,
         )
 

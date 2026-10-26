@@ -233,10 +233,6 @@ result.replaceChildren(
     ),
     element(
         'p',
-        `Urgência: ${labels[data.urgencia] || data.urgencia || 'Não informada'}`
-    ),
-    element(
-        'p',
         `Prioridade informada: ${data.prioridade}. Registro nº ${data.id} · ${date(data.criado_em)}`
     ),
     element(
