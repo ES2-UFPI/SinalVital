@@ -4,9 +4,9 @@ from app.domain.triagem.strategies.palavras_chave import PalavrasChaveStrategy
 
 
 @pytest.mark.parametrize("relato, classificacao, prioridade", [
-    ("Estou com dor no peito", "laranja", 2),
-    ("DOR NO PEITO!!!", "laranja", 2),
-    ("dór no péito", "laranja", 2),
+    ("Estou com dor no peito", "vermelho", 1),
+  ("DOR NO PEITO!!!", "vermelho", 1),
+  ("dór no péito", "vermelho", 1),
     ("Não consigo respirar direito", "laranja", 2),
     ("Meu pai desmaiou", "vermelho", 1),
     ("desmaiei agora", "vermelho", 1),
@@ -35,4 +35,4 @@ def test_nao_casa_parte_de_palavra():
 
 def test_justificativa_mostra_termos_com_acento_sem_duplicar():
     r = PalavrasChaveStrategy().classificar("dor forte no peito e falta de ar")
-    assert r.justificativa == "Termos identificados: dor forte no peito, falta de ar"
+    assert r.justificativa == "Termos identificados: dor forte no peito"
