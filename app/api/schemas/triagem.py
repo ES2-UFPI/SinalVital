@@ -17,5 +17,7 @@ class TriagemResponse(BaseModel):
     estrategia: str
     classificacao: str
     prioridade: int
+    urgencia: str
+    especialidade: str
     justificativa: str
     criado_em: datetime

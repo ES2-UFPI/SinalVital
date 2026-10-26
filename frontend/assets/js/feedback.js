@@ -7,7 +7,11 @@
 const Feedback = (() => {
   const ICONES = { sucesso: "✓", erro: "!", info: "i" };
   const TEMPO_MS = { sucesso: 5000, info: 5000, erro: 0 }; // 0 = não fecha sozinho
-  let area = null, fundo = null, textoModal = null, abertos = 0, ultimoFoco = null;
+  let area = null,
+    fundo = null,
+    textoModal = null,
+    abertos = 0,
+    ultimoFoco = null;
 
   function el(tag, classe, texto) {
     const e = document.createElement(tag);
@@ -42,7 +46,10 @@ const Feedback = (() => {
     const b = el("div", "sv-banner " + tipo);
     // erro avisa na hora (alert); os demais esperam o leitor de tela terminar (status).
     b.setAttribute("role", tipo === "erro" ? "alert" : "status");
-    b.append(el("span", "sv-icone", ICONES[tipo]), el("span", "sv-texto", texto));
+    b.append(
+      el("span", "sv-icone", ICONES[tipo]),
+      el("span", "sv-texto", texto),
+    );
     const fechar = el("button", "", "Fechar");
     fechar.type = "button";
     fechar.addEventListener("click", () => b.remove());
@@ -75,11 +82,16 @@ const Feedback = (() => {
 
   async function comCarregamento(texto, promessa) {
     const fechar = carregando(texto);
-    try { return await promessa; } finally { fechar(); }
+    try {
+      return await promessa;
+    } finally {
+      fechar();
+    }
   }
 
   return {
-    carregando, comCarregamento,
+    carregando,
+    comCarregamento,
     sucesso: (t) => banner("sucesso", t),
     erro: (t) => banner("erro", t),
     info: (t) => banner("info", t),
