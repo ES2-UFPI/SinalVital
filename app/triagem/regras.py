@@ -22,13 +22,12 @@ URGENCIA_PADRAO = "baixa"
 # Termos SEM acento e em minúsculas (o texto é normalizado antes da busca).
 TERMOS_URGENCIA: Dict[str, Tuple[str, ...]] = {
     "emergencia": (
-        "dor no peito", "dor forte no peito", "aperto no peito", "pressao no peito",
-        "falta de ar", "nao consigo respirar", "dificuldade para respirar",
+       "falta de ar", "nao consigo respirar", "dificuldade para respirar",
         "desmaio", "desmaiei", "desmaiou", "perda de consciencia", "convulsao",
         "hemorragia", "sangramento intenso", "paralisia", "fala arrastada",
         "perda subita de visao", "perda de visao", "produto quimico no olho",
     ),
-    "alta": (
+    "alta": ( "dor no peito", "dor forte no peito", "aperto no peito", "pressao no peito",
         "febre alta", "febre", "dor forte", "vomito", "vomitos", "tontura",
         "palpitacao", "palpitacoes", "inchaco nas pernas", "pressao alta",
         "visao turva", "visao embacada", "visao dupla", "dor no olho",
