@@ -1,0 +1,339 @@
+"use strict";
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* Reading controls still work without storage. */
+    }
+  },
+};
+let fontSize = Math.max(18, Math.min(24, Number(store.get("sv-font")) || 18));
+function applyFont() {
+  document.documentElement.style.setProperty("--font-size", `${fontSize}px`);
+  $("font-down").disabled = fontSize <= 18;
+  $("font-up").disabled = fontSize >= 24;
+}
+applyFont();
+$("font-up").addEventListener("click", () => {
+  fontSize = Math.min(24, fontSize + 2);
+  applyFont();
+  store.set("sv-font", fontSize);
+});
+$("font-down").addEventListener("click", () => {
+  fontSize = Math.max(18, fontSize - 2);
+  applyFont();
+  store.set("sv-font", fontSize);
+});
+function contrast(active) {
+  document.body.classList.toggle("high-contrast", active);
+  $("contrast").setAttribute("aria-pressed", String(active));
+}
+contrast(store.get("sv-contrast") === "true");
+$("contrast").addEventListener("click", () => {
+  const active = !document.body.classList.contains("high-contrast");
+  contrast(active);
+  store.set("sv-contrast", active);
+});
+document
+  .querySelector(`[data-nav="${document.body.dataset.page}"]`)
+  ?.setAttribute("aria-current", "page");
+// Patient identifier is kept only in this tab; clinical details are not stored in the browser.
+const patientSession = {
+  get() {
+    try {
+      return sessionStorage.getItem("sv-patient");
+    } catch {
+      return null;
+    }
+  },
+  set(id) {
+    try {
+      sessionStorage.setItem("sv-patient", id);
+    } catch {}
+  },
+};
+const queryPatient = new URLSearchParams(location.search).get("paciente");
+if ($("paciente-id"))
+  $("paciente-id").value = /^[1-9]\d*$/.test(queryPatient || "")
+    ? queryPatient
+    : patientSession.get() || "";
+function feedback(message, error = false) {
+  const node = $("feedback");
+  node.hidden = !message;
+  node.textContent = message;
+  node.classList.toggle("error", error);
+  node.setAttribute("role", error ? "alert" : "status");
+}
+async function api(path, options = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(path, {
+      ...options,
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", ...options.headers },
+    });
+    if (response.status >= 500)
+      throw new Error(
+        "O servidor não conseguiu concluir a operação. Seus dados podem não ter sido salvos. Tente novamente após o suporte verificar o serviço.",
+      );
+    let body;
+    try {
+      body = await response.json();
+    } catch {
+      throw new Error(
+        "O servidor retornou um formato inesperado. Atualize a página e tente novamente.",
+      );
+    }
+    if (!response.ok) {
+      if (response.status === 404)
+        throw new Error(
+          "Paciente não encontrado. Confira o número ou faça seu cadastro.",
+        );
+      if (response.status === 409)
+        throw new Error(
+          "Este e-mail já está cadastrado. Use o número de paciente recebido anteriormente.",
+        );
+      if (response.status === 422)
+        throw new Error("Confira os campos preenchidos e tente novamente.");
+      throw new Error(
+        "Não foi possível concluir agora. Tente novamente em instantes.",
+      );
+    }
+    return body;
+  } catch (error) {
+    if (error.name === "AbortError")
+      throw new Error(
+        "A resposta demorou mais que o esperado. Confira o histórico antes de repetir um envio.",
+      );
+    if (error instanceof TypeError)
+      throw new Error(
+        "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
+      );
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+async function submit(form, message, task) {
+  const button = form.querySelector('[type="submit"]');
+  if (button.disabled) return;
+  button.disabled = true;
+  form.setAttribute("aria-busy", "true");
+  feedback("");
+  const fechar = Feedback.carregando(message);
+  try {
+    await task();
+  } catch (error) {
+    Feedback.erro(error.message);
+  } finally {
+    fechar();
+    button.disabled = false;
+    form.removeAttribute("aria-busy");
+  }
+}
+function element(tag, text, className) {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  if (className) node.className = className;
+  return node;
+}
+const labels = {
+  vermelho: "Emergência",
+  laranja: "Muito urgente",
+  amarelo: "Urgente",
+  verde: "Pouco urgente",
+  azul: "Não urgente",
+  emergencia: "Emergência",
+  alta: "Urgência alta",
+  media: "Urgência média",
+  baixa: "Urgência baixa",
+};
+function badge(value) {
+  return element(
+    "span",
+    labels[value] || "Classificação não informada",
+    `badge ${Object.hasOwn(labels, value) ? value : ""}`,
+  );
+}
+function date(value) {
+  const normalized = /(Z|[+-]\d\d:?\d\d)$/.test(value) ? value : value + "Z";
+  const d = new Date(normalized);
+  return Number.isNaN(d.getTime())
+    ? "Data não informada"
+    : d.toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" });
+}
+$("cadastro-form")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  submit(form, "Salvando seu cadastro…", async () => {
+    const nome = $("nome").value.trim();
+    if (!nome) throw new Error("Preencha seu nome antes de continuar.");
+    const body = {
+      nome,
+      email: $("email").value.trim(),
+      idade: $("idade").value === "" ? null : Number($("idade").value),
+      condicao_cronica: $("condicao").value.trim() || null,
+    };
+    const patient = await api("/pacientes", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    patientSession.set(patient.id);
+    feedback(
+      `Cadastro salvo com sucesso! Seu número de paciente é ${patient.id}. Guarde esse número.`,
+    );
+    $("continuar").href = `/pages/triagem.html?paciente=${patient.id}`;
+    $("continuar").hidden = false;
+  });
+});
+document.querySelectorAll("[data-sintoma]").forEach((button) =>
+  button.addEventListener("click", () => {
+    const input = $("relato");
+    const text = input.value.trim();
+    const symptom = button.dataset.sintoma;
+    if (!text.toLowerCase().includes(symptom.toLowerCase())) {
+      const next = text ? `${text}; ${symptom}` : symptom;
+      if (next.length <= input.maxLength) input.value = next;
+    }
+    input.focus();
+  }),
+);
+$("triagem-form")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  $("resultado").hidden = true;
+  submit(form, "Analisando seu relato…", async () => {
+    const id = $("paciente-id").value;
+    const relato = $("relato").value.trim();
+    if (relato.length < 5)
+      throw new Error("Descreva seus sintomas com pelo menos 5 caracteres.");
+    const data = await api(`/pacientes/${id}/triagens`, {
+      method: "POST",
+      body: JSON.stringify({ relato, estrategia: "palavras_chave" }),
+    });
+    patientSession.set(id);
+    const result = $('resultado');
+result.replaceChildren(
+    badge(data.classificacao),
+    element('h2', 'Classificação inicial', ''),
+    element('p', data.justificativa),
+    element(
+        'p',
+        `Especialidade recomendada: ${String(data.especialidade || 'clinica_geral').replaceAll('_', ' ')}`
+    ),
+    element(
+        'p',
+        `Prioridade informada: ${data.prioridade}. Registro nº ${data.id} · ${date(data.criado_em)}`
+    ),
+    element(
+        'p',
+        'Esta triagem é uma simulação por palavras-chave e não substitui avaliação médica.',
+        'notice'
+    )
+);
+    if (["vermelho", "laranja"].includes(data.classificacao)) {
+      result.append(
+        element(
+          "p",
+          "Procure atendimento imediato. Em caso de emergência, ligue para o SAMU 192.",
+          "notice",
+        ),
+      );
+      const call = element("a", "Ligar para o SAMU 192", "button primary");
+      call.href = "tel:192";
+      result.append(call);
+    }
+    const again = element("a", "Consultar meu histórico →", "button secondary");
+    again.href = `/pages/historico.html?paciente=${id}`;
+    result.append(again);
+    result.hidden = false;
+    Feedback.sucesso(
+      "Triagem salva com sucesso. Confira a classificação abaixo.",
+    );
+  }).then(() => {
+    if (!$("resultado").hidden) $("resultado").focus();
+  });
+});
+let events = [];
+function renderHistory() {
+  const filtered = events
+    .filter((item) => !$("tipo").value || item.tipo_evento === $("tipo").value)
+    .sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em));
+  $("timeline").replaceChildren();
+  $("history-empty").hidden = filtered.length > 0;
+  if (!filtered.length) {
+    $("history-empty").replaceChildren(
+      element(
+        "h2",
+        events.length
+          ? "Nenhum registro com este filtro"
+          : "Ainda não há eventos no histórico",
+      ),
+      element(
+        "p",
+        "Quando houver eventos disponíveis na API de histórico, eles aparecerão aqui.",
+      ),
+    );
+  }
+  for (const item of filtered) {
+    const row = element("li");
+    const time = element("time", date(item.criado_em));
+    time.dateTime = item.criado_em;
+    row.append(
+      time,
+      element("h3", String(item.tipo_evento).replaceAll("_", " ")),
+      badge(item.urgencia),
+      element("p", item.descricao),
+      element(
+        "p",
+        `Especialidade: ${String(item.especialidade || "Não informada").replaceAll("_", " ")}`,
+      ),
+    );
+    if (item.justificativa)
+      row.append(element("p", item.justificativa, "hint"));
+    $("timeline").append(row);
+  }
+}
+$("historico-form")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  events = [];
+  $("timeline").replaceChildren();
+  $("patient-summary").hidden = true;
+  $("history-empty").hidden = true;
+  submit(form, "Carregando seu histórico…", async () => {
+    const id = $("paciente-id").value;
+    const data = await api(`/pacientes/${id}/historico`);
+    patientSession.set(id);
+    const summary = $("patient-summary");
+    summary.className = "patient-summary";
+    summary.replaceChildren(
+      element("h2", data.nome),
+      element(
+        "p",
+        `Paciente nº ${data.id}${data.idade != null ? ` · ${data.idade} anos` : ""}`,
+      ),
+    );
+    summary.hidden = false;
+    events = data.eventos_historico || [];
+    renderHistory();
+    Feedback.sucesso(
+      `Histórico carregado. ${events.length} registro(s) disponível(is).`,
+    );
+  });
+});
+$("tipo")?.addEventListener("change", renderHistory);
+// Load the selected patient's history immediately when arriving from triage.
+if ($("historico-form") && /^[1-9]\d*$/.test($("paciente-id").value)) {
+  $("historico-form").requestSubmit();
+}

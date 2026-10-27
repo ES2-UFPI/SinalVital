@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#16294A">
+    <title>Início | SinalVital</title>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <script src="/assets/js/app.js" defer></script>
+</head>
+
+<body data-page="inicio"><a class="skip" href="#conteudo">Pular para o conteúdo</a>
+    <div class="pulse" aria-hidden="true"><svg viewBox="0 0 1440 30" preserveAspectRatio="none">
+            <path
+                d="M0 15 H190 l8 -5 8 10 8 -5 h110 l10 -10 10 23 10 -26 10 13 h250 l8 -5 8 10 8 -5 h180 l10 -10 10 23 10 -26 10 13 H1440" />
+        </svg></div>
+    <header class="header"><a class="brand" href="/" aria-label="SinalVital, início"><span class="brand-icon"
+                aria-hidden="true">✚</span> Sinal<span>Vital</span></a>
+        <div class="reading" aria-label="Opções de leitura"><button type="button" id="font-down"
+                aria-label="Diminuir tamanho das letras">A−</button><button type="button" id="font-up"
+                aria-label="Aumentar tamanho das letras">A+</button><button type="button" id="contrast"
+                aria-pressed="false">◐ <span>Alto contraste</span></button></div>
+    </header>
+    <div class="shell">
+        <aside class="sidebar">
+            <p class="eyebrow">ESPAÇO DO PACIENTE</p>
+            <nav aria-label="Navegação principal"><a href="/" data-nav="inicio"><span aria-hidden="true">⌂</span>
+                    Início</a><a href="/pages/cadastro.html" data-nav="cadastro"><span aria-hidden="true">＋</span> Meu
+                    cadastro</a><a href="/pages/triagem.html" data-nav="triagem"><span aria-hidden="true">♡</span>
+                    Relatar sintomas</a><a href="/pages/historico.html" data-nav="historico"><span
+                        aria-hidden="true">◷</span> Meu histórico</a></nav>
+            <div class="side-note"><span class="status-dot"></span> Demonstração · Sprint 1<p>Triagem por regras
+                    simuladas.</p>
+            </div>
+        </aside>
+        <main id="conteudo" tabindex="-1">
+            <div class="page-heading">
+                <div>
+                    <p class="eyebrow">SEU CUIDADO, MAIS PERTO</p>
+                    <h1>Olá! Como você está hoje?</h1>
+                    <p>Vamos cuidar da sua saúde, um passo de cada vez.</p>
+                </div><span class="pill">Primeira Sprint</span>
+            </div>
+            <section class="hero" aria-labelledby="hero-title">
+                <div><span class="hero-label">ESTAMOS AQUI PARA AJUDAR</span>
+                    <h2 id="hero-title">O primeiro passo é<br>contar como você se sente.</h2>
+                    <p>Descreva seus sintomas e receba uma classificação inicial para orientar a busca por atendimento.
+                    </p><a class="button primary" href="/pages/triagem.html">Quero relatar meus sintomas <span
+                            aria-hidden="true">→</span></a>
+                </div>
+                <div class="hero-art" aria-hidden="true">
+                    <div class="orbit"><span>♡</span></div><svg viewBox="0 0 300 70">
+                        <path d="M0 35 H65 l15 -12 15 24 20 -45 22 66 20 -33 H300" />
+                    </svg>
+                    <p>Escutar. Orientar. Cuidar.</p>
+                </div>
+            </section>
+            <section aria-labelledby="next">
+                <div class="section-title">
+                    <h2 id="next">O que você precisa fazer?</h2><span>Simples, do início ao cuidado.</span>
+                </div>
+                <div class="cards"><a class="action-card" href="/pages/cadastro.html"><span
+                            class="tile-icon">＋</span><span class="step">01 · SEUS DADOS</span>
+                        <h3>Fazer meu cadastro</h3>
+                        <p>Informe seus dados para começar a usar o SinalVital.</p><span class="card-link">Abrir
+                            cadastro →</span>
+                    </a><a class="action-card" href="/pages/triagem.html"><span class="tile-icon">♡</span><span
+                            class="step">02 · COMO VOCÊ ESTÁ</span>
+                        <h3>Relatar sintomas</h3>
+                        <p>Conte o que está sentindo com suas próprias palavras.</p><span class="card-link">Iniciar
+                            triagem →</span>
+                    </a><a class="action-card" href="/pages/historico.html"><span class="tile-icon">◷</span><span
+                            class="step">03 · SEU ACOMPANHAMENTO</span>
+                        <h3>Ver meu histórico</h3>
+                        <p>Consulte os registros de saúde disponíveis para você.</p><span class="card-link">Consultar
+                            histórico →</span>
+                    </a></div>
+            </section>
+            <div class="help-strip"><span aria-hidden="true">ⓘ</span>
+                <p><strong>Uma experiência no seu ritmo.</strong><br>Use A+ para aumentar as letras ou ative o alto
+                    contraste no topo da página.</p>
+            </div>
+        </main>
+    </div>
+    <footer>SinalVital <span>•</span> Cuidado que começa com escuta.<small>Ambiente de demonstração. Utilize dados
+            fictícios.</small></footer>
+</body>
+
+</html>
