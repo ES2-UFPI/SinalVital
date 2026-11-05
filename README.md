@@ -147,3 +147,29 @@ O comando utiliza o `DATABASE_URL` configurado, faz um backup SQLite consistente
 (`*.backup-*.db`) e adiciona as colunas `estrategia`, `classificacao` e `prioridade`
 ausentes. Registros anteriores são preservados. Pode ser executado novamente sem
 duplicar alterações. Reinicie o servidor após a atualização e recarregue o navegador.
+
+## Integração contínua — CI-01 (#39)
+
+O workflow `.github/workflows/pytest.yml` executa a suíte em pushes na branch
+`dev` e em pull requests destinados a `dev`. No GitHub, acompanhe
+o resultado na aba **Actions**, no workflow **Testes Python**, ou nos checks do PR.
+
+O job usa Ubuntu e Python 3.12, instala `requirements-dev.txt` (que também inclui
+as dependências da aplicação) e executa `python -m pytest -q` na raiz do projeto.
+O cache do pip considera ambos os arquivos de dependências. O ambiente usa
+`MODO_IA=mock` e SQLite em memória, sem depender do `.env`, banco local ou chave
+de API. Não é necessário iniciar o servidor nem executar o seed.
+
+Falhas de instalação ou de testes interrompem o job e produzem um check de falha;
+o limite de execução é de 10 minutos. O workflow tem permissão somente de leitura
+do repositório e não publica código. Exigir o check para permitir merge depende
+de uma regra de proteção da branch, configurada separadamente no GitHub.
+
+Para reproduzir os testes no PowerShell:
+
+```powershell
+$env:MODO_IA = "mock"
+$env:DATABASE_URL = "sqlite:///:memory:"
+.\venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\venv\Scripts\python.exe -m pytest -q
+```
