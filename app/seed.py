@@ -12,11 +12,11 @@ PACIENTES_DEMONSTRACAO = (
     {"nome": "Juscélio", "email": "juscelio@example.com"},
 )
 
-# Nomes e registros fictícios, exclusivamente para a demonstração.
+# Nomes fictícios, exclusivamente para a demonstração.
 MEDICOS_DEMONSTRACAO = (
-    {"nome": "Helena", "crm": "000001-PI", "especialidade": "cardiologia"},
-    {"nome": "Ana", "crm": "000002-PI", "especialidade": "oftalmologia"},
-    {"nome": "Carlos", "crm": "000003-PI", "especialidade": "clinica_geral"},
+    {"nome": "Helena", "especialidade": "cardiologia", "capacidade_simultanea": 2, "ativo": True},
+    {"nome": "Ana", "especialidade": "oftalmologia", "capacidade_simultanea": 1, "ativo": True},
+    {"nome": "Carlos", "especialidade": "clinica_geral", "capacidade_simultanea": 3, "ativo": True},
 )
 
 
@@ -36,11 +36,14 @@ def popular_pacientes(db: Session) -> int:
 
 
 def popular_medicos(db: Session) -> int:
-    """Insere médicos ausentes por CRM, preservando os cadastros existentes."""
+    """Identifica médicos da demo por nome e especialidade, preservando alterações."""
     inseridos = 0
     try:
         for dados in MEDICOS_DEMONSTRACAO:
-            if db.query(Medico).filter(Medico.crm == dados["crm"]).first() is None:
+            existente = db.query(Medico).filter_by(
+                nome=dados["nome"], especialidade=dados["especialidade"]
+            ).first()
+            if existente is None:
                 db.add(Medico(**dados))
                 inseridos += 1
         db.commit()

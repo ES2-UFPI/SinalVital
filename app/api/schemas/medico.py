@@ -6,5 +6,6 @@ class MedicoResposta(BaseModel):
 
     id: int
     nome: str
-    crm: str
     especialidade: str
+    capacidade_simultanea: int
+    ativo: bool
