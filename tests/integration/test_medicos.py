@@ -12,30 +12,43 @@ def test_lista_medicos_por_nome(client, db_session):
     from app.database.models import Medico
 
     db_session.add_all([
-        Medico(nome="Zélia", crm="000002-PI", especialidade="oftalmologia"),
-        Medico(nome="Helena", crm="000001-PI", especialidade="cardiologia"),
+        Medico(nome="Zélia", capacidade_simultanea=2, ativo=False, especialidade="oftalmologia"),
+        Medico(nome="Helena", capacidade_simultanea=3, ativo=True, especialidade="cardiologia"),
     ])
     db_session.commit()
     resposta = client.get("/medicos")
     assert resposta.status_code == 200
     dados = resposta.json()
     assert [m["nome"] for m in dados] == ["Helena", "Zélia"]
+    assert dados[1]["ativo"] is False
+    assert dados[1]["capacidade_simultanea"] == 2
     assert dados[0] == {
-        "id": db_session.query(Medico).filter_by(crm="000001-PI").one().id,
-        "nome": "Helena", "crm": "000001-PI", "especialidade": "cardiologia",
+        "id": db_session.query(Medico).filter_by(nome="Helena").one().id,
+        "nome": "Helena", "especialidade": "cardiologia",
+        "capacidade_simultanea": 3, "ativo": True,
     }
 
 
-def test_crm_unico(db_session):
+def test_valores_padrao_medico(db_session):
     from app.database.models import Medico
 
-    db_session.add(Medico(nome="Helena", crm="000001-PI", especialidade="cardiologia"))
+    medico = Medico(nome="Helena", especialidade="cardiologia")
+    db_session.add(medico)
     db_session.commit()
-    db_session.add(Medico(nome="Outra médica", crm="000001-PI", especialidade="clinica_geral"))
+    db_session.refresh(medico)
+    assert medico.capacidade_simultanea == 1
+    assert medico.ativo is True
+
+
+@pytest.mark.parametrize("capacidade", [0, -1])
+def test_capacidade_deve_ser_positiva(db_session, capacidade):
+    from app.database.models import Medico
+
+    db_session.add(Medico(nome="Helena", especialidade="cardiologia",
+                         capacidade_simultanea=capacidade))
     with pytest.raises(IntegrityError):
         db_session.commit()
     db_session.rollback()
-    assert db_session.query(Medico).count() == 1
 
 
 def test_seed_medicos_repetivel_preserva_edicoes(db_session):
@@ -43,12 +56,15 @@ def test_seed_medicos_repetivel_preserva_edicoes(db_session):
     from app.seed import MEDICOS_DEMONSTRACAO, popular_medicos
 
     assert popular_medicos(db_session) == len(MEDICOS_DEMONSTRACAO)
-    medico = db_session.query(Medico).filter_by(crm=MEDICOS_DEMONSTRACAO[0]["crm"]).one()
-    medico.nome = "Nome atualizado"
+    medico = db_session.query(Medico).filter_by(nome=MEDICOS_DEMONSTRACAO[0]["nome"],
+                                               especialidade=MEDICOS_DEMONSTRACAO[0]["especialidade"]).one()
+    medico.capacidade_simultanea = 5
+    medico.ativo = False
     db_session.commit()
     assert popular_medicos(db_session) == 0
     db_session.refresh(medico)
-    assert medico.nome == "Nome atualizado"
+    assert medico.capacidade_simultanea == 5
+    assert medico.ativo is False
     assert db_session.query(Medico).count() == len(MEDICOS_DEMONSTRACAO)
     assert {m.especialidade for m in db_session.query(Medico)} >= {
         "cardiologia", "oftalmologia", "clinica_geral",
