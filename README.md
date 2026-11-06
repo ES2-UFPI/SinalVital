@@ -1,5 +1,44 @@
 # SinalVital
 
+## Médicos — [008-01] (#40)
+
+O modelo `Medico` está em `app/database/models/medico.py`. A tabela `medicos`
+contém `id`, `nome`, `crm` (único, com UF, como `000001-PI`) e `especialidade`.
+A tabela é criada na inicialização da API ou na execução do seed; não é preciso
+apagar o banco existente para acrescentá-la.
+
+Para popular os pacientes e os três médicos fictícios de demonstração:
+
+```powershell
+.\venv\Scripts\python.exe -m app.seed
+.\venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+O seed inclui cardiologia, oftalmologia e clínica geral. Nomes e CRMs são
+fictícios. A repetição do comando não duplica médicos nem sobrescreve registros
+com o mesmo CRM. Os pacientes de demonstração continuam sendo incluídos.
+
+Abra http://127.0.0.1:8000/medicos no navegador para consultar o JSON, ou use
+`GET /medicos` em http://127.0.0.1:8000/docs. A resposta é `200` com uma lista
+ordenada por nome (ID como desempate); sem médicos cadastrados, retorna `[]`.
+Cada item contém `id`, `nome`, `crm` e `especialidade`.
+
+```json
+{
+  "id": 1,
+  "nome": "Helena",
+  "crm": "000001-PI",
+  "especialidade": "cardiologia"
+}
+```
+
+O desenvolvimento seguiu TDD: cinco testes foram executados e falharam antes
+da implementação; após a implementação, a suíte completa passou. Os testes em
+`tests/integration/test_medicos.py` cobrem listagem vazia, ordenação e resposta,
+persistência, CRM único, seed repetível e preservação do seed de pacientes.
+São descobertos pelo `python -m pytest -q` e pelo workflow existente em PRs
+destinados à `dev`. Esta entrega não inclui cadastro HTTP ou tela de médicos.
+
 Projeto da disciplina de Engenharia de Software. A aplicação principal está em
 `app/`; `tutorial-demo/` é uma demonstração independente dos tutoriais.
 
