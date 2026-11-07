@@ -6,6 +6,7 @@ from typing import Mapping, Optional, Protocol, Sequence
 PESO_URGENCIA = {"emergencia": 100, "alta": 55, "media": 30, "baixa": 10}
 BONUS_POR_MINUTO = 0.5
 BONUS_MAXIMO = 40.0
+AGUARDANDO_VAGA_NA_ESPECIALIDADE = "Aguardando vaga na especialidade"
 
 
 class MedicoLike(Protocol):
@@ -49,5 +50,21 @@ class MotorPriorizacao:
         medicos: Sequence[MedicoLike],
         carga_atual: Mapping[int, int],
     ) -> Optional[MedicoLike]:
-        """Issue #41 (Pablo). Implementar com TDD. Sem vaga, devolve None."""
-        raise NotImplementedError
+        """Seleciona médico ativo da especialidade, com vaga e menor carga.
+
+        Cargas são contagens não negativas por ID; IDs ausentes contam como zero.
+        Empates são resolvidos pelo menor ID. Não modifica os argumentos nem
+        reserva vaga. Sem candidato, retorna None: a integração da fila deve
+        apresentar AGUARDANDO_VAGA_NA_ESPECIALIDADE (issue #44).
+        """
+        disponiveis = (
+            medico for medico in medicos
+            if medico.ativo
+            and medico.especialidade == especialidade
+            and carga_atual.get(medico.id, 0) < medico.capacidade_simultanea
+        )
+        return min(
+            disponiveis,
+            key=lambda medico: (carga_atual.get(medico.id, 0), medico.id),
+            default=None,
+        )
