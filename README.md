@@ -1,5 +1,47 @@
 # SinalVital
 
+## Matching de médicos — [008-02] (#41)
+
+`MotorPriorizacao.escolher_medico(especialidade, medicos, carga_atual)`, em
+`app/domain/queue/motor_priorizacao.py`, seleciona somente médicos ativos da
+especialidade indicada, com carga inferior à capacidade simultânea. A menor
+carga absoluta vence; em caso de empate, vence o menor ID, independentemente
+da ordem da lista. A especialidade deve usar o mesmo identificador do modelo,
+como `cardiologia`, `oftalmologia` ou `clinica_geral`.
+
+`carga_atual` é um mapa `{id_medico: quantidade_atual}` de contagens não negativas.
+IDs ausentes contam como zero; entradas referentes a outros médicos são ignoradas.
+O método retorna o próprio médico selecionado ou `None` quando não há vaga.
+Na integração dos endpoints da fila (#44), `None` deve ser apresentado como
+`AGUARDANDO_VAGA_NA_ESPECIALIDADE`, cujo valor é `"Aguardando vaga na especialidade"`.
+
+```python
+from app.database.models import Medico
+from app.domain.queue.motor_priorizacao import (
+    MotorPriorizacao, AGUARDANDO_VAGA_NA_ESPECIALIDADE,
+)
+
+medicos = [
+    Medico(id=1, nome="Helena", especialidade="cardiologia",
+           capacidade_simultanea=2, ativo=True),
+]
+medico = MotorPriorizacao.escolher_medico("cardiologia", medicos, {1: 1})
+estado = medico.nome if medico is not None else AGUARDANDO_VAGA_NA_ESPECIALIDADE
+```
+
+Esta operação não consulta o banco, modifica as cargas nem reserva vagas. A
+camada que aloca o atendimento deve obter cargas atuais e controlar concorrência.
+Nenhuma rota nova foi adicionada nesta issue. Os 15 cenários TDD estão em
+`tests/unit/test_escolher_medico.py`, incluindo uso com o modelo SQLAlchemy,
+capacidade atingida/excedida, menor carga, empate, inativos e ausência de vaga.
+Para executá-los:
+
+```powershell
+.\venv\Scripts\python.exe -m pytest tests/unit/test_escolher_medico.py -q
+```
+
+O workflow existente os executa junto à suíte nos PRs destinados à `dev`.
+
 ## Médicos — [008-01] (#40)
 
 O modelo `Medico` está em `app/database/models/medico.py`. A tabela `medicos`
