@@ -1,5 +1,58 @@
 # SinalVital
 
+## Médicos — [008-01] (#40)
+
+O modelo `Medico` está em `app/database/models/medico.py`. A tabela `medicos`
+contém `id`, `nome`, `especialidade`, `capacidade_simultanea` e `ativo`.
+Por padrão, a capacidade é 1 e o médico está ativo. A capacidade deve ser positiva.
+A tabela é criada na inicialização da API ou na execução do seed; não é preciso
+apagar o banco existente para acrescentá-la.
+
+Para popular os pacientes e os três médicos fictícios de demonstração:
+
+```powershell
+.\venv\Scripts\python.exe -m app.seed
+.\venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+O seed inclui cardiologia, oftalmologia e clínica geral, com nomes fictícios e
+capacidades de 2, 1 e 3 atendimentos simultâneos, respectivamente. Todos começam
+ativos. A repetição do comando identifica cada médico de demonstração por nome
+e especialidade, sem duplicar nem sobrescrever sua capacidade ou estado ativo.
+Se nome ou especialidade forem alterados, o registro original da demonstração
+será inserido novamente. Essa identificação é específica do seed, não uma regra
+de unicidade para todos os médicos. Os pacientes continuam sendo incluídos.
+
+Abra http://127.0.0.1:8000/medicos no navegador para consultar o JSON, ou use
+`GET /medicos` em http://127.0.0.1:8000/docs. A resposta é `200` com uma lista
+ordenada por nome (ID como desempate); sem médicos cadastrados, retorna `[]`.
+Cada item contém `id`, `nome`, `especialidade`, `capacidade_simultanea` e `ativo`.
+A listagem inclui tanto médicos ativos quanto inativos.
+
+```json
+{
+  "id": 1,
+  "nome": "Helena",
+  "especialidade": "cardiologia",
+  "capacidade_simultanea": 2,
+  "ativo": true
+}
+```
+
+O desenvolvimento seguiu TDD: cinco testes foram executados e falharam antes
+da implementação; após a implementação, a suíte completa passou. Os testes em
+`tests/integration/test_medicos.py` cobrem listagem vazia, ordenação e resposta,
+persistência, capacidade positiva, valores padrão, médicos inativos, seed
+repetível e preservação do seed de pacientes. Os testes foram ajustados em um
+novo ciclo Red/Green após a confirmação da descrição completa da issue.
+São descobertos pelo `python -m pytest -q` e pelo workflow existente em PRs
+destinados à `dev`. Esta entrega não inclui cadastro HTTP ou tela de médicos.
+
+Se você executou a primeira versão local da #40 (com CRM), a tabela `medicos`
+antiga não é atualizada pelo `create_all`. Para testar sem alterar os dados
+existentes, use `DATABASE_URL=sqlite:///./sinalvital-medicos-v2.db` no `.env`
+antes de executar o seed e reinicie a API. Nenhum banco anterior é apagado.
+
 Projeto da disciplina de Engenharia de Software. A aplicação principal está em
 `app/`; `tutorial-demo/` é uma demonstração independente dos tutoriais.
 
