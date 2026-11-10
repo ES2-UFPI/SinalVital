@@ -245,8 +245,8 @@ duplicar alterações. Reinicie o servidor após a atualização e recarregue o 
 
 ## Integração contínua — CI-01 (#39)
 
-O workflow `.github/workflows/pytest.yml` executa a suíte em pushes na branch
-`dev` e em pull requests destinados a `dev`. No GitHub, acompanhe
+O workflow `.github/workflows/ci.yml` instala as dependências e executa a suíte
+em pushes na `dev` ou `main` e em pull requests destinados a essas branches. No GitHub, acompanhe
 o resultado na aba **Actions**, no workflow **Testes Python**, ou nos checks do PR.
 
 O job usa Ubuntu e Python 3.12, instala `requirements-dev.txt` (que também inclui
