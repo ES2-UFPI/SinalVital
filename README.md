@@ -147,11 +147,11 @@ e a implementação inicial `MockClassificador`. A `ClassificadorFactory` escolh
 a implementação lendo `MODO_IA` a cada chamada de `criar()`:
 
 - Ausente ou `mock`: usa o mock.
-- `real`: também usa o mock enquanto a implementação real não existir.
+- `real`: usa o `ClaudeClassificador` (issue #48, [005-06]), que consulta a API da Anthropic. Veja a seção abaixo.
 - Outro valor (inclusive vazio): gera `ValueError` para indicar configuração inválida.
 
 O `.env` é carregado sem sobrescrever as variáveis do ambiente. O modo aceita
-maiúsculas e espaços nas extremidades. Não são necessárias chave de API ou rede.
+maiúsculas e espaços nas extremidades. No modo `mock` não são necessárias chave de API ou rede.
 
 ```python
 from app.ia_service import ClassificadorFactory
@@ -170,6 +170,31 @@ busca de termos, mantendo as cores da dev. Retorna `urgencia`, `especialidade` e
 `justificativa`; relatos vazios geram `ValueError`. É uma simulação didática.
 A expansão das regras pertence à [005-03], e a exposição pelo endpoint
 `POST /triagens` à [005-04]. Esta etapa não adiciona uma rota de classificação.
+
+### ClaudeClassificador (`MODO_IA=real`) — issue #48 ([005-06])
+
+`app/domain/triagem/strategies/claude_classificador.py` implementa a mesma interface `Classificador`
+e consome a API de mensagens da Anthropic via `httpx`. A rota e o frontend não mudam: só a
+`ClassificadorFactory` decide a Strategy.
+
+Para usar, no `.env`:
+
+```
+MODO_IA=real
+ANTHROPIC_API_KEY=sua-chave
+# opcional: ANTHROPIC_MODEL=outro-modelo
+```
+
+- O prompt pede um JSON com `urgencia` (`emergencia|alta|media|baixa`), `especialidade`
+  (`cardiologia|oftalmologia|dermatologia|clinica_geral`) e `justificativa`. Valores fora dessas listas
+  tornam a resposta inválida.
+- **Fallback seguro:** chave ausente, falha de rede, timeout (15 s), erro HTTP ou resposta inválida
+  geram um aviso no log e a classificação é feita pelo `MockClassificador`. O log não registra a
+  chave nem o relato do paciente.
+- A chave só existe em variável de ambiente/`.env` (ignorado pelo git). **Nunca** a coloque no código.
+- A chamada à API gera custo na conta Anthropic. Os testes usam `httpx.MockTransport` e não acessam
+  a rede.
+- É uma triagem de apoio, sem validação clínica: não faz diagnóstico nem substitui um médico.
 
 ## Testes
 
