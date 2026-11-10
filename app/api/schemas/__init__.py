@@ -10,6 +10,8 @@ from .item_fila import (
     ItemFilaResponse,
     ItemFilaEntrada,
     ItemFilaResposta,
+    FilaCreate,
+    FilaResponse,
 )
 
 __all__ = [
@@ -22,4 +24,6 @@ __all__ = [
     "ItemFilaResponse",
     "ItemFilaEntrada",
     "ItemFilaResposta",
+    "FilaCreate",
+    "FilaResponse",
 ]
