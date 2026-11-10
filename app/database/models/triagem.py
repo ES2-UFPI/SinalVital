@@ -16,6 +16,7 @@ class Triagem(Base):
     urgencia: Mapped[str] = mapped_column(String(30), default="baixa")
     especialidade: Mapped[str] = mapped_column(String(100), default="clinica_geral")
     paciente = relationship("Paciente", back_populates="triagens")
+    item_fila = relationship("ItemFila", back_populates="triagem", uselist=False, cascade="all, delete-orphan")
     estrategia: Mapped[str] = mapped_column(String(50), default="palavras_chave")
     classificacao: Mapped[str] = mapped_column(String(20), default="azul")
     prioridade: Mapped[int] = mapped_column(Integer, default=5)

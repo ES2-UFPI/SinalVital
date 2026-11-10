@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, CheckConstraint, Column, Integer, String
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -14,3 +15,5 @@ class Medico(Base):
     especialidade = Column(String(100), nullable=False)
     capacidade_simultanea = Column(Integer, nullable=False, default=1)
     ativo = Column(Boolean, nullable=False, default=True)
+
+    itens_fila = relationship("ItemFila", back_populates="medico")
