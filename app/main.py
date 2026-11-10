@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from app.database import Base, engine
 from app.api.routes.pacientes import router as pacientes_router
 from app.api.routes.triagens import router as triagens_router
+from app.api.routes.medicos import router as medicos_router
 
 
 @asynccontextmanager
@@ -18,6 +19,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="SinalVital", lifespan=lifespan)
 app.include_router(pacientes_router)
 app.include_router(triagens_router)
+app.include_router(medicos_router)
 
 FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
 app.mount("/assets", StaticFiles(directory=FRONTEND / "assets"), name="assets")
