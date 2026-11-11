@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#16294A">
+    <title>Painel médico | SinalVital</title>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/feedback.css">
+    <script src="/assets/js/feedback.js" defer></script>
+    <script src="/assets/js/app.js" defer></script>
+</head>
+
+<body data-page="medico"><a class="skip" href="#conteudo">Pular para o conteúdo</a>
+    <div class="pulse" aria-hidden="true"><svg viewBox="0 0 1440 30" preserveAspectRatio="none">
+            <path
+                d="M0 15 H190 l8 -5 8 10 8 -5 h110 l10 -10 10 23 10 -26 10 13 h250 l8 -5 8 10 8 -5 h180 l10 -10 10 23 10 -26 10 13 H1440" />
+        </svg></div>
+    <header class="header"><a class="brand" href="/" aria-label="SinalVital, início"><span class="brand-icon"
+                aria-hidden="true">✚</span> Sinal<span>Vital</span></a>
+        <div class="reading" aria-label="Opções de leitura"><button type="button" id="font-down"
+                aria-label="Diminuir tamanho das letras">A−</button><button type="button" id="font-up"
+                aria-label="Aumentar tamanho das letras">A+</button><button type="button" id="contrast"
+                aria-pressed="false">◐ <span>Alto contraste</span></button></div>
+    </header>
+    <div class="shell">
+        <aside class="sidebar">
+            <p class="eyebrow">ESPAÇO DO PACIENTE</p>
+            <nav aria-label="Navegação principal"><a href="/" data-nav="inicio"><span aria-hidden="true">⌂</span>
+                    Início</a><a href="/pages/cadastro.html" data-nav="cadastro"><span aria-hidden="true">＋</span> Meu
+                    cadastro</a><a href="/pages/triagem.html" data-nav="triagem"><span aria-hidden="true">♡</span>
+                    Relatar sintomas</a><a href="/pages/medico.html" data-nav="medico"><span
+                        aria-hidden="true">✚</span> Painel médico</a><a href="/pages/historico.html"
+                    data-nav="historico"><span aria-hidden="true">◷</span> Meu histórico</a></nav>
+            <div class="side-note"><span class="status-dot"></span> Demonstração<p>Fila priorizada por score
+                    clínico e registro médico.</p>
+            </div>
+        </aside>
+        <main id="conteudo" tabindex="-1">
+            <div class="page-heading">
+                <div>
+                    <p class="eyebrow">03 · EQUIPE CLÍNICA</p>
+                    <h1>Painel médico — Dra. Helena e equipe clínica</h1>
+                    <p>Acompanhe a fila priorizada por score de risco e registre o atendimento clínico durante ou após a
+                        consulta.</p>
+                </div>
+            </div>
+
+            <div class="doctor-grid">
+                <!-- Seção 1: Fila Priorizada de Atendimento -->
+                <section class="card panel" aria-labelledby="fila-titulo">
+                    <div class="queue-header">
+                        <div>
+                            <h2 id="fila-titulo">Fila Priorizada de Pacientes</h2>
+                            <p class="field-help">Ordenação automática decrescente por score de risco calculado pelo
+                                <strong>MotorPriorizacao</strong> (gravidade clínica, condição crônica, idade e tempo de
+                                espera).</p>
+                        </div>
+                        <button class="btn" id="atualizar-fila" type="button">Atualizar fila</button>
+                    </div>
+
+                    <div class="queue-filter">
+                        <label for="filtro-medico-fila">Filtrar fila por médico responsável</label>
+                        <select id="filtro-medico-fila" name="filtro_medico_fila"
+                            aria-describedby="filtro-medico-fila-help">
+                            <option value="">Todos os pacientes aguardando na fila</option>
+                        </select>
+                        <p id="filtro-medico-fila-help" class="field-help">Selecione a Dra. Helena ou outro médico da
+                            equipe para filtrar a fila, ou visualize todos os pacientes aguardando.</p>
+                    </div>
+
+                    <div id="fila-medica" class="queue-list" aria-live="polite">
+                        <div class="empty">
+                            <span aria-hidden="true">✚</span>
+                            <h3>Carregando fila de atendimento…</h3>
+                            <p>Os pacientes triados aparecerão aqui em ordem decrescente de prioridade.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Seção 2: Registro Clínico de Consulta -->
+                <form id="consulta-form" class="card panel" aria-labelledby="consulta-titulo" novalidate>
+                    <h2 id="consulta-titulo">Registro Clínico de Consulta</h2>
+                    <p class="field-help">Preencha a avaliação médica para encerrar o atendimento na fila e gravar o
+                        evento no histórico do paciente. Os campos com * são obrigatórios.</p>
+
+                    <label for="medico-id">Médico(a) responsável *</label>
+                    <select id="medico-id" name="medico_id" required aria-describedby="medico-id-help">
+                        <option value="">Selecione o(a) médico(a) responsável</option>
+                    </select>
+                    <p id="medico-id-help" class="field-help">Lista carregada via <code>GET /medicos</code> com
+                        pré-seleção automática da Dra. Helena quando disponível.</p>
+
+                    <label for="paciente-id">Número do paciente (ID) *</label>
+                    <input id="paciente-id" name="paciente_id" type="number" min="1" step="1" inputmode="numeric"
+                        required aria-describedby="paciente-id-help">
+                    <p id="paciente-id-help" class="field-help">Pode ser preenchido automaticamente clicando em
+                        "Selecionar paciente" na fila ao lado ou digitando o ID.</p>
+
+                    <div id="paciente-selecionado-resumo" class="patient-banner" hidden aria-live="polite"></div>
+
+                    <label for="anamnese">Anamnese e observações iniciais <span>(opcional)</span></label>
+                    <textarea id="anamnese" name="anamnese" rows="3" maxlength="5000"
+                        placeholder="Ex.: Paciente relata início dos sintomas há 3 horas, sem alergias conhecidas."
+                        aria-describedby="anamnese-help"></textarea>
+                    <p id="anamnese-help" class="field-help">Opcional — registre a história clínica da queixa atual e os
+                        sinais vitais observados.</p>
+
+                    <label for="diagnostico">Hipótese diagnóstica / diagnóstico clínico *</label>
+                    <textarea id="diagnostico" name="diagnostico" rows="3" minlength="3" maxlength="5000" required
+                        placeholder="Ex.: Síndrome coronariana aguda a esclarecer."
+                        aria-describedby="diagnostico-help"></textarea>
+                    <p id="diagnostico-help" class="field-help">Obrigatório — informe a hipótese diagnóstica ou o
+                        diagnóstico clínico definido na consulta.</p>
+
+                    <label for="conduta">Conduta médica *</label>
+                    <textarea id="conduta" name="conduta" rows="3" minlength="3" maxlength="5000" required
+                        placeholder="Ex.: Prescrição de medicação inicial, solicitação de ECG seriados e observação clínica."
+                        aria-describedby="conduta-help"></textarea>
+                    <p id="conduta-help" class="field-help">Obrigatório — descreva prescrição, orientações ao paciente e
+                        encaminhamento.</p>
+
+                    <div class="form-actions">
+                        <button class="btn btn-primary" type="submit">Registrar consulta no histórico</button>
+                        <button class="btn" id="limpar-consulta" type="button">Limpar campos</button>
+                    </div>
+
+                    <div id="feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+                    <section id="consulta-resultado" class="card result-card" tabindex="-1" hidden aria-live="polite">
+                    </section>
+                </form>
+            </div>
+        </main>
+    </div>
+    <footer>SinalVital <span>•</span> Cuidado que começa com escuta.<small>Ambiente de demonstração. Utilize dados
+            fictícios.</small></footer>
+</body>
+
+</html>
