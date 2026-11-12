@@ -253,6 +253,12 @@ const STATUS_LABEL = {
   cancelado: "Cancelado",
 };
 
+const STATUS_SIMBOLO = {
+  em_atendimento: "•",
+  atendido: "✓",
+  cancelado: "✕",
+};
+
 // ── Estado ──────────────────────────────────────────────────────────────────
 let todosOsItens = [];
 let ultimaAtualizacao = null;
@@ -284,16 +290,41 @@ function ocultarFeedback() {
   if (feedbackEl) feedbackEl.hidden = true;
 }
 
-function formatarTempo(dataISO) {
-  if (!dataISO) return "—";
+function normalizarDataUTC(dataISO) {
+  if (!dataISO) return null;
   const normalizado = /Z|[+-]\d\d:?\d\d$/.test(dataISO) ? dataISO : dataISO + "Z";
-  const minutos = Math.floor((Date.now() - new Date(normalizado)) / 60_000);
-  if (minutos < 1) return "agora mesmo";
+  const data = new Date(normalizado);
+  return Number.isNaN(data.getTime()) ? null : data;
+}
+
+function formatarMinutos(minutos, textoZero = "agora mesmo") {
+  if (minutos < 1) return textoZero;
   if (minutos === 1) return "1 min";
   if (minutos < 60) return `${minutos} min`;
   const horas = Math.floor(minutos / 60);
   const resto = minutos % 60;
   return resto > 0 ? `${horas}h ${resto}min` : `${horas}h`;
+}
+
+function formatarTempo(dataISO) {
+  const inicio = normalizarDataUTC(dataISO);
+  if (!inicio) return "—";
+  const minutos = Math.max(0, Math.floor((Date.now() - inicio.getTime()) / 60_000));
+  return formatarMinutos(minutos, "agora mesmo");
+}
+
+function formatarDuracaoEntre(inicioISO, fimISO) {
+  const inicio = normalizarDataUTC(inicioISO);
+  const fim = normalizarDataUTC(fimISO);
+  if (!inicio || !fim) return "—";
+  const minutos = Math.max(0, Math.floor((fim.getTime() - inicio.getTime()) / 60_000));
+  return formatarMinutos(minutos, "menos de 1 min");
+}
+
+function formatarDataHora(dataISO) {
+  const data = normalizarDataUTC(dataISO);
+  if (!data) return "—";
+  return data.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 
 function formatarEspecialidadeLocal(valor) {
@@ -312,15 +343,61 @@ function formatarEspecialidadeLocal(valor) {
 }
 
 // ── Renderização ─────────────────────────────────────────────────────────────
+function obterPosicaoExibida(item, basePorStatus, filaAguardando, statusFiltro) {
+  if (statusFiltro) {
+    const idx = basePorStatus.indexOf(item);
+    return idx >= 0 ? idx + 1 : "—";
+  }
+
+  const status = String(item.status || "aguardando").toLowerCase().trim();
+  if (status === "aguardando") {
+    const idx = filaAguardando.indexOf(item);
+    return idx >= 0 ? idx + 1 : "—";
+  }
+
+  return STATUS_SIMBOLO[status] || "—";
+}
+
+function formatarContagemFila(filtrados, statusFiltro) {
+  const total = filtrados.length;
+  const s = total !== 1 ? "s" : "";
+
+  const mensagensPorStatus = {
+    aguardando: `${total} paciente${s} aguardando na fila`,
+    em_atendimento: `${total} paciente${s} em atendimento`,
+    atendido: `${total} paciente${s} atendido${s}`,
+    cancelado: `${total} paciente${s} cancelado${s}`,
+  };
+
+  if (statusFiltro && mensagensPorStatus[statusFiltro]) {
+    return mensagensPorStatus[statusFiltro];
+  }
+
+  if (statusFiltro) {
+    return `${total} paciente${s} (${STATUS_LABEL[statusFiltro] || statusFiltro})`;
+  }
+
+  const qtdAguardando = filtrados.filter(
+    (i) => (i.status || "aguardando").toLowerCase().trim() === "aguardando"
+  ).length;
+  return `${total} paciente${s} listado${s} (${qtdAguardando} aguardando)`;
+}
+
 function criarCardFila(item, posicao) {
   const urgencia = String(item.urgencia || "").toLowerCase().trim();
   const status = String(item.status || "aguardando").toLowerCase().trim();
   const medicoAlocado = item.medico_alocado || AGUARDANDO_VAGA;
   const aguardandoVaga = medicoAlocado === AGUARDANDO_VAGA;
+  const ehPosicaoNumerica = typeof posicao === "number" && Number.isFinite(posicao);
+  const nome = item.paciente_nome || "Paciente";
+  const statusLabel = STATUS_LABEL[status] || status;
 
   const li = document.createElement("li");
   li.className = `queue-card ${urgencia}`;
-  li.setAttribute("aria-label", `Posição ${posicao}: ${item.paciente_nome || "Paciente"}`);
+  li.setAttribute(
+    "aria-label",
+    ehPosicaoNumerica ? `Posição ${posicao}: ${nome}` : `${statusLabel}: ${nome}`
+  );
 
   // Topo: posição + nome + badges
   const topo = document.createElement("div");
@@ -329,7 +406,7 @@ function criarCardFila(item, posicao) {
   const posEl = document.createElement("span");
   posEl.className = "fila-posicao";
   posEl.textContent = String(posicao);
-  posEl.setAttribute("aria-label", `Posição ${posicao}`);
+  posEl.setAttribute("aria-label", ehPosicaoNumerica ? `Posição ${posicao}` : statusLabel);
 
   const nomeEl = document.createElement("h3");
   nomeEl.textContent = item.paciente_nome || `Paciente #${item.paciente_id}`;
@@ -348,7 +425,7 @@ function criarCardFila(item, posicao) {
   // Badge status
   const badgeStatus = document.createElement("span");
   badgeStatus.className = "badge azul";
-  badgeStatus.textContent = STATUS_LABEL[status] || status;
+  badgeStatus.textContent = statusLabel;
   badgesEl.appendChild(badgeStatus);
 
   // Score
@@ -394,11 +471,35 @@ function criarCardFila(item, posicao) {
     infoEl.appendChild(infoRow("Motivo:", item.motivo));
   }
 
-  // Tempo de espera
-  infoEl.appendChild(infoRow(
-    "Aguardando há:",
-    formatarTempo(item.criado_em)
-  ));
+  // Tempo de espera / conclusão do atendimento
+  if (status === "atendido") {
+    if (item.atualizado_em) {
+      infoEl.appendChild(infoRow(
+        "Tempo de espera:",
+        formatarDuracaoEntre(item.criado_em, item.atualizado_em)
+      ));
+      infoEl.appendChild(infoRow(
+        "Atendido em:",
+        formatarDataHora(item.atualizado_em)
+      ));
+    } else {
+      infoEl.appendChild(infoRow(
+        "Entrada na fila:",
+        formatarDataHora(item.criado_em)
+      ));
+      infoEl.appendChild(infoRow("Atendimento:", "Concluído"));
+    }
+  } else if (status === "cancelado") {
+    infoEl.appendChild(infoRow(
+      "Encerrado em:",
+      formatarDataHora(item.atualizado_em || item.criado_em)
+    ));
+  } else {
+    infoEl.appendChild(infoRow(
+      "Aguardando há:",
+      formatarTempo(item.criado_em)
+    ));
+  }
 
   li.append(topo, infoEl);
   return li;
@@ -408,11 +509,16 @@ function renderizarFila() {
   const termo = (buscaEl?.value || "").toLowerCase().trim();
   const statusFiltro = (filtroStatusEl?.value || "").toLowerCase().trim();
 
-  const filtrados = todosOsItens.filter((item) => {
-    const nomeOk = !termo || (item.paciente_nome || "").toLowerCase().includes(termo);
-    const statusOk = !statusFiltro || (item.status || "").toLowerCase() === statusFiltro;
-    return nomeOk && statusOk;
-  });
+  const basePorStatus = statusFiltro
+    ? todosOsItens.filter((i) => (i.status || "").toLowerCase().trim() === statusFiltro)
+    : todosOsItens;
+  const filaAguardando = todosOsItens.filter(
+    (i) => (i.status || "aguardando").toLowerCase().trim() === "aguardando"
+  );
+
+  const filtrados = termo
+    ? basePorStatus.filter((item) => (item.paciente_nome || "").toLowerCase().includes(termo))
+    : basePorStatus;
 
   listaEl.replaceChildren();
 
@@ -432,12 +538,11 @@ function renderizarFila() {
   vaziaEl.hidden = true;
   statusBarEl.hidden = false;
 
-  const total = filtrados.length;
-  contagemEl.textContent = `${total} paciente${total !== 1 ? "s" : ""} na fila`;
+  contagemEl.textContent = formatarContagemFila(filtrados, statusFiltro);
 
   filtrados.forEach((item) => {
-    const posicaoOriginal = todosOsItens.indexOf(item) + 1;
-    listaEl.appendChild(criarCardFila(item, posicaoOriginal));
+    const posicao = obterPosicaoExibida(item, basePorStatus, filaAguardando, statusFiltro);
+    listaEl.appendChild(criarCardFila(item, posicao));
   });
 }
 

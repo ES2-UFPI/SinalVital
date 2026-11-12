@@ -122,10 +122,15 @@ def listar_fila(
 
     itens = query.all()
 
-    # Recalcula e atualiza o score de espera para itens em espera
+    # Recalcula e atualiza o score apenas para itens ainda ativos na fila,
+    # mantendo score e atualizado_em congelados após atendimento/cancelamento.
     alterou_banco = False
     for item in itens:
-        if item.triagem and item.triagem.urgencia:
+        if (
+            item.status in ("aguardando", "em_atendimento")
+            and item.triagem
+            and item.triagem.urgencia
+        ):
             urg = item.triagem.urgencia.lower()
             if urg in PESO_URGENCIA:
                 score_atual = MotorPriorizacao.calcular_score(urg, item.triagem.criado_em)

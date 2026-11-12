@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -68,6 +70,7 @@ def criar_consulta(dados: ConsultaCreate, db: Session = Depends(get_db)):
         ]
         if itens_ativos_medico:
             itens_ativos_medico[0].status = "atendido"
+            itens_ativos_medico[0].atualizado_em = datetime.now(timezone.utc)
     elif triagens_paciente:
         especialidade_compativel = any(
             (t.especialidade or "").lower() == (medico.especialidade or "").lower()

@@ -280,3 +280,60 @@ def test_get_fila_filtro_por_status(client, db_session):
     assert len(dados_atendimento) == 1
     assert dados_atendimento[0]["id"] == res2["id"]
 
+
+def test_get_fila_congela_score_e_atualizado_em_apos_atendimento(client, db_session):
+    """Após status='atendido', GET /fila deve congelar score e atualizado_em."""
+    paciente = _criar_paciente(db_session, "Paciente Atendido", "atendido@test.com")
+    triagem = _criar_triagem(
+        db_session,
+        paciente.id,
+        urgencia="alta",
+        especialidade="cardiologia",
+        delta_minutos=20,
+    )
+    medico = _criar_medico(
+        db_session,
+        nome="Dra. Helena",
+        especialidade="cardiologia",
+        capacidade_simultanea=2,
+    )
+
+    item_criado = client.post("/fila", json={"triagem_id": triagem.id}).json()
+    consulta = client.post(
+        "/consultas",
+        json={
+            "paciente_id": paciente.id,
+            "medico_id": medico.id,
+            "diagnostico": "Dor torácica avaliada",
+            "conduta": "Alta com acompanhamento",
+        },
+    )
+    assert consulta.status_code == 201
+
+    item_banco = db_session.get(ItemFila, item_criado["id"])
+    assert item_banco is not None
+    assert item_banco.status == "atendido"
+    assert item_banco.atualizado_em is not None
+
+    # Simula que o atendimento foi concluído há 5 minutos e triagem segue envelhecendo
+    atendido_em_fixo = datetime.now(timezone.utc) - timedelta(minutes=5)
+    item_banco.atualizado_em = atendido_em_fixo
+    score_congelado = item_banco.score
+    triagem.criado_em = datetime.now(timezone.utc) - timedelta(minutes=45)
+    db_session.commit()
+
+    resposta = client.get("/fila")
+    assert resposta.status_code == 200
+    itens = resposta.json()
+    assert len(itens) == 1
+    assert itens[0]["status"] == "atendido"
+    assert itens[0]["score"] == score_congelado
+
+    atualizado_retornado = datetime.fromisoformat(
+        itens[0]["atualizado_em"].replace("Z", "+00:00")
+    )
+    if atualizado_retornado.tzinfo is None:
+        atualizado_retornado = atualizado_retornado.replace(tzinfo=timezone.utc)
+    assert abs((atualizado_retornado - atendido_em_fixo).total_seconds()) < 1
+
+
