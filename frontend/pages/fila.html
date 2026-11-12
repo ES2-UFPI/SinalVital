@@ -435,8 +435,9 @@ function renderizarFila() {
   const total = filtrados.length;
   contagemEl.textContent = `${total} paciente${total !== 1 ? "s" : ""} na fila`;
 
-  filtrados.forEach((item, idx) => {
-    listaEl.appendChild(criarCardFila(item, idx + 1));
+  filtrados.forEach((item) => {
+    const posicaoOriginal = todosOsItens.indexOf(item) + 1;
+    listaEl.appendChild(criarCardFila(item, posicaoOriginal));
   });
 }
 
@@ -497,7 +498,9 @@ buscaEl?.addEventListener("input", renderizarFila);
 filtroStatusEl?.addEventListener("change", renderizarFila);
 
 // ── Inicialização ─────────────────────────────────────────────────────────────
-carregarFila();
-iniciarAutoRefresh();
+document.addEventListener("DOMContentLoaded", () => {
+  carregarFila();
+  iniciarAutoRefresh();
+});
 </script>
 </body></html>
