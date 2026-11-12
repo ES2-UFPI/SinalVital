@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#16294A"><title>Fila de espera | SinalVital</title><link rel="stylesheet" href="/assets/css/base.css"><link rel="stylesheet" href="/assets/css/feedback.css"><script src="/assets/js/feedback.js" defer></script><script src="/assets/js/app.js" defer></script></head>
+<body data-page="fila"><a class="skip" href="#conteudo">Pular para o conteúdo</a>
+<div class="pulse" aria-hidden="true"><svg viewBox="0 0 1440 30" preserveAspectRatio="none"><path d="M0 15 H190 l8 -5 8 10 8 -5 h110 l10 -10 10 23 10 -26 10 13 h250 l8 -5 8 10 8 -5 h180 l10 -10 10 23 10 -26 10 13 H1440"/></svg></div>
+<header class="header"><a class="brand" href="/" aria-label="SinalVital, início"><span class="brand-icon" aria-hidden="true">✚</span> Sinal<span>Vital</span></a><div class="reading" aria-label="Opções de leitura"><button type="button" id="font-down" aria-label="Diminuir tamanho das letras">A−</button><button type="button" id="font-up" aria-label="Aumentar tamanho das letras">A+</button><button type="button" id="contrast" aria-pressed="false">◐ <span>Alto contraste</span></button></div></header>
+<div class="shell"><aside class="sidebar"><p class="eyebrow">ESPAÇO DO PACIENTE</p><nav aria-label="Navegação principal"><a href="/" data-nav="inicio"><span aria-hidden="true">⌂</span> Início</a><a href="/pages/cadastro.html" data-nav="cadastro"><span aria-hidden="true">＋</span> Meu cadastro</a><a href="/pages/triagem.html" data-nav="triagem"><span aria-hidden="true">♡</span> Relatar sintomas</a><a href="/pages/medico.html" data-nav="medico"><span aria-hidden="true">✚</span> Painel médico</a><a href="/pages/historico.html" data-nav="historico"><span aria-hidden="true">◷</span> Meu histórico</a><a href="/pages/fila.html" data-nav="fila"><span aria-hidden="true">⋮</span> Fila de espera</a></nav><div class="side-note"><span class="status-dot"></span> Demonstração · Sprint 2<p>Fila priorizada por score de urgência.</p></div></aside>
+
+<main id="conteudo" tabindex="-1">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">05 · ACOMPANHAMENTO</p>
+      <h1>Fila de espera</h1>
+      <p>Veja sua posição na fila e o motivo do encaminhamento. A lista é ordenada por prioridade clínica.</p>
+    </div>
+    <div class="fila-actions">
+      <button type="button" class="btn" id="btn-atualizar" aria-label="Atualizar fila agora">↻ Atualizar</button>
+    </div>
+  </div>
+
+  <section class="panel">
+    <!-- Barra de busca e filtros -->
+    <div class="fila-toolbar">
+      <div class="fila-search-wrap">
+        <label for="busca-nome" class="visually-hidden">Buscar paciente pelo nome</label>
+        <input
+          id="busca-nome"
+          type="search"
+          placeholder="Buscar paciente pelo nome…"
+          aria-label="Filtrar fila pelo nome do paciente"
+          autocomplete="off"
+        >
+      </div>
+      <div class="fila-filtros">
+        <label for="filtro-status" class="visually-hidden">Filtrar por status</label>
+        <select id="filtro-status" aria-label="Filtrar por status">
+          <option value="">Todos os status</option>
+          <option value="aguardando" selected>Aguardando</option>
+          <option value="em_atendimento">Em atendimento</option>
+          <option value="atendido">Atendido</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Área de feedback / status (aria-live) -->
+    <div id="feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+
+    <!-- Contador e info de atualização -->
+    <div class="fila-status-bar" id="fila-status-bar" hidden>
+      <span id="fila-contagem" class="fila-contagem"></span>
+      <span id="fila-ultima-atualizacao" class="fila-ultima-atualizacao" aria-live="polite"></span>
+    </div>
+
+    <!-- Estado vazio -->
+    <div id="fila-vazia" class="empty" hidden>
+      <span aria-hidden="true">⋮</span>
+      <h2>Nenhum paciente na fila agora</h2>
+      <p>Quando um paciente realizar a triagem, ele aparecerá aqui em ordem de prioridade.</p>
+    </div>
+
+    <!-- Lista da fila -->
+    <ol id="fila-lista" class="queue-list" aria-label="Fila de espera ordenada por prioridade" aria-live="polite"></ol>
+  </section>
+
+  <div class="help-strip">
+    <span aria-hidden="true">ⓘ</span>
+    <p>A posição na fila é calculada automaticamente com base na urgência e no tempo de espera. Quanto maior o score, mais prioritário o atendimento. Para entrar na fila, <a href="/pages/triagem.html">relate seus sintomas</a>.</p>
+  </div>
+</main>
+</div>
+
+<footer>SinalVital <span>•</span> Cuidado que começa com escuta.<small>Ambiente de demonstração. Utilize dados fictícios.</small></footer>
+
+<style>
+/* ── Fila de espera — estilos locais ── */
+.fila-toolbar {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.fila-search-wrap {
+  flex: 1;
+  min-width: 200px;
+}
+
+.fila-search-wrap input {
+  margin: 0;
+}
+
+.fila-filtros select {
+  margin: 0;
+  min-width: 190px;
+  min-height: 50px;
+}
+
+.fila-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: .82rem;
+  color: var(--muted);
+}
+
+.fila-contagem {
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.fila-ultima-atualizacao {
+  font-size: .78rem;
+}
+
+/* ── Cards da fila ── */
+.fila-posicao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: #fff;
+  font-weight: 750;
+  font-size: .85rem;
+  flex-shrink: 0;
+}
+
+.queue-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.queue-card h3 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.queue-card-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.queue-card-info {
+  display: grid;
+  gap: 6px;
+}
+
+.queue-info-row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  font-size: .84rem;
+  color: var(--muted);
+}
+
+.queue-info-row strong {
+  color: var(--ink);
+  font-weight: 600;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.medico-alocado {
+  color: var(--ink);
+}
+
+.medico-aguardando {
+  color: #873700;
+  font-style: italic;
+}
+
+.fila-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ── Alto contraste ── */
+body.high-contrast .fila-posicao {
+  background: #ffdf00;
+  color: #000;
+  border: 1px solid #fff;
+}
+
+body.high-contrast .medico-aguardando {
+  color: #ffb4c2;
+}
+
+body.high-contrast .fila-status-bar {
+  border-color: #aaa;
+}
+
+/* ── Visually hidden (a11y) ── */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .fila-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .fila-filtros select {
+    width: 100%;
+  }
+  .queue-info-row strong {
+    min-width: 80px;
+  }
+}
+</style>
+
+<script>
+"use strict";
+
+// ── Constantes ──────────────────────────────────────────────────────────────
+const INTERVALO_ATUALIZACAO_MS = 30_000;
+const AGUARDANDO_VAGA = "Aguardando vaga na especialidade";
+
+const URGENCIA_LABEL = {
+  emergencia: "Emergência",
+  alta: "Urgência alta",
+  media: "Urgência média",
+  baixa: "Urgência baixa",
+};
+
+const STATUS_LABEL = {
+  aguardando: "Aguardando",
+  em_atendimento: "Em atendimento",
+  atendido: "Atendido",
+  cancelado: "Cancelado",
+};
+
+// ── Estado ──────────────────────────────────────────────────────────────────
+let todosOsItens = [];
+let ultimaAtualizacao = null;
+let timerIntervalo = null;
+let contagemRegressiva = INTERVALO_ATUALIZACAO_MS / 1000;
+let timerContagem = null;
+
+// ── Elementos ───────────────────────────────────────────────────────────────
+const listaEl = document.getElementById("fila-lista");
+const vaziaEl = document.getElementById("fila-vazia");
+const statusBarEl = document.getElementById("fila-status-bar");
+const contagemEl = document.getElementById("fila-contagem");
+const ultimaAtualizacaoEl = document.getElementById("fila-ultima-atualizacao");
+const buscaEl = document.getElementById("busca-nome");
+const filtroStatusEl = document.getElementById("filtro-status");
+const btnAtualizar = document.getElementById("btn-atualizar");
+const feedbackEl = document.getElementById("feedback");
+
+// ── Utilitários ─────────────────────────────────────────────────────────────
+function mostrarFeedback(msg, tipo = "info") {
+  if (!feedbackEl) return;
+  feedbackEl.textContent = msg;
+  feedbackEl.className = "feedback" + (tipo === "error" ? " error" : tipo === "success" ? " success" : "");
+  feedbackEl.hidden = !msg;
+  feedbackEl.setAttribute("role", tipo === "error" ? "alert" : "status");
+}
+
+function ocultarFeedback() {
+  if (feedbackEl) feedbackEl.hidden = true;
+}
+
+function formatarTempo(dataISO) {
+  if (!dataISO) return "—";
+  const normalizado = /Z|[+-]\d\d:?\d\d$/.test(dataISO) ? dataISO : dataISO + "Z";
+  const minutos = Math.floor((Date.now() - new Date(normalizado)) / 60_000);
+  if (minutos < 1) return "agora mesmo";
+  if (minutos === 1) return "1 min";
+  if (minutos < 60) return `${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  return resto > 0 ? `${horas}h ${resto}min` : `${horas}h`;
+}
+
+function formatarEspecialidadeLocal(valor) {
+  if (!valor) return "Clínica Geral";
+  const mapa = {
+    cardiologia: "Cardiologia",
+    clinica_geral: "Clínica Geral",
+    oftalmologia: "Oftalmologia",
+    pediatria: "Pediatria",
+    neurologia: "Neurologia",
+    ortopedia: "Ortopedia",
+  };
+  const chave = String(valor).toLowerCase().trim();
+  if (mapa[chave]) return mapa[chave];
+  return chave.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+}
+
+// ── Renderização ─────────────────────────────────────────────────────────────
+function criarCardFila(item, posicao) {
+  const urgencia = String(item.urgencia || "").toLowerCase().trim();
+  const status = String(item.status || "aguardando").toLowerCase().trim();
+  const medicoAlocado = item.medico_alocado || AGUARDANDO_VAGA;
+  const aguardandoVaga = medicoAlocado === AGUARDANDO_VAGA;
+
+  const li = document.createElement("li");
+  li.className = `queue-card ${urgencia}`;
+  li.setAttribute("aria-label", `Posição ${posicao}: ${item.paciente_nome || "Paciente"}`);
+
+  // Topo: posição + nome + badges
+  const topo = document.createElement("div");
+  topo.className = "queue-card-top";
+
+  const posEl = document.createElement("span");
+  posEl.className = "fila-posicao";
+  posEl.textContent = String(posicao);
+  posEl.setAttribute("aria-label", `Posição ${posicao}`);
+
+  const nomeEl = document.createElement("h3");
+  nomeEl.textContent = item.paciente_nome || `Paciente #${item.paciente_id}`;
+
+  const badgesEl = document.createElement("div");
+  badgesEl.className = "queue-card-badges";
+
+  // Badge urgência
+  if (urgencia) {
+    const badgeUrg = document.createElement("span");
+    badgeUrg.className = `badge ${urgencia}`;
+    badgeUrg.textContent = URGENCIA_LABEL[urgencia] || urgencia;
+    badgesEl.appendChild(badgeUrg);
+  }
+
+  // Badge status
+  const badgeStatus = document.createElement("span");
+  badgeStatus.className = "badge azul";
+  badgeStatus.textContent = STATUS_LABEL[status] || status;
+  badgesEl.appendChild(badgeStatus);
+
+  // Score
+  const scoreEl = document.createElement("span");
+  scoreEl.className = "queue-score";
+  scoreEl.setAttribute("aria-label", `Score de prioridade: ${typeof item.score === "number" ? item.score.toFixed(1) : "—"}`);
+  scoreEl.textContent = `★ ${typeof item.score === "number" ? item.score.toFixed(1) : "—"}`;
+  badgesEl.appendChild(scoreEl);
+
+  topo.append(posEl, nomeEl, badgesEl);
+
+  // Informações do card
+  const infoEl = document.createElement("div");
+  infoEl.className = "queue-card-info";
+
+  function infoRow(rotulo, valor, classeValor = "") {
+    const row = document.createElement("p");
+    row.className = "queue-info-row";
+    const strong = document.createElement("strong");
+    strong.textContent = rotulo;
+    const span = document.createElement("span");
+    if (classeValor) span.className = classeValor;
+    span.textContent = valor;
+    row.append(strong, span);
+    return row;
+  }
+
+  // Especialidade
+  infoEl.appendChild(infoRow(
+    "Especialidade:",
+    formatarEspecialidadeLocal(item.especialidade)
+  ));
+
+  // Médico
+  infoEl.appendChild(infoRow(
+    "Médico:",
+    medicoAlocado,
+    aguardandoVaga ? "medico-aguardando" : "medico-alocado"
+  ));
+
+  // Motivo
+  if (item.motivo) {
+    infoEl.appendChild(infoRow("Motivo:", item.motivo));
+  }
+
+  // Tempo de espera
+  infoEl.appendChild(infoRow(
+    "Aguardando há:",
+    formatarTempo(item.criado_em)
+  ));
+
+  li.append(topo, infoEl);
+  return li;
+}
+
+function renderizarFila() {
+  const termo = (buscaEl?.value || "").toLowerCase().trim();
+  const statusFiltro = (filtroStatusEl?.value || "").toLowerCase().trim();
+
+  const filtrados = todosOsItens.filter((item) => {
+    const nomeOk = !termo || (item.paciente_nome || "").toLowerCase().includes(termo);
+    const statusOk = !statusFiltro || (item.status || "").toLowerCase() === statusFiltro;
+    return nomeOk && statusOk;
+  });
+
+  listaEl.replaceChildren();
+
+  if (!filtrados.length) {
+    vaziaEl.hidden = false;
+    statusBarEl.hidden = true;
+    if (todosOsItens.length && (termo || statusFiltro)) {
+      vaziaEl.querySelector("h2").textContent = "Nenhum paciente encontrado";
+      vaziaEl.querySelector("p").textContent = "Tente ajustar o filtro ou a busca pelo nome.";
+    } else {
+      vaziaEl.querySelector("h2").textContent = "Nenhum paciente na fila agora";
+      vaziaEl.querySelector("p").textContent = "Quando um paciente realizar a triagem, ele aparecerá aqui em ordem de prioridade.";
+    }
+    return;
+  }
+
+  vaziaEl.hidden = true;
+  statusBarEl.hidden = false;
+
+  const total = filtrados.length;
+  contagemEl.textContent = `${total} paciente${total !== 1 ? "s" : ""} na fila`;
+
+  filtrados.forEach((item) => {
+    const posicaoOriginal = todosOsItens.indexOf(item) + 1;
+    listaEl.appendChild(criarCardFila(item, posicaoOriginal));
+  });
+}
+
+// ── Busca na API ─────────────────────────────────────────────────────────────
+async function carregarFila() {
+  mostrarFeedback("Carregando fila…");
+  btnAtualizar && (btnAtualizar.disabled = true);
+
+  try {
+    const fila = await api("/fila");
+    todosOsItens = Array.isArray(fila) ? fila : [];
+    ultimaAtualizacao = new Date();
+    atualizarInfoUltimaAtualizacao();
+    ocultarFeedback();
+    renderizarFila();
+    reiniciarContagemRegressiva();
+  } catch (err) {
+    mostrarFeedback(err.message || "Não foi possível carregar a fila. Verifique a conexão e tente novamente.", "error");
+  } finally {
+    btnAtualizar && (btnAtualizar.disabled = false);
+  }
+}
+
+// ── Info de atualização ───────────────────────────────────────────────────────
+function atualizarInfoUltimaAtualizacao() {
+  if (!ultimaAtualizacaoEl || !ultimaAtualizacao) return;
+  const seg = Math.round((Date.now() - ultimaAtualizacao) / 1000);
+  if (seg < 5) {
+    ultimaAtualizacaoEl.textContent = "Atualizado agora mesmo";
+  } else {
+    ultimaAtualizacaoEl.textContent = `Atualizado há ${seg}s — próxima em ${contagemRegressiva}s`;
+  }
+}
+
+function reiniciarContagemRegressiva() {
+  contagemRegressiva = INTERVALO_ATUALIZACAO_MS / 1000;
+  clearInterval(timerContagem);
+  timerContagem = setInterval(() => {
+    contagemRegressiva = Math.max(0, contagemRegressiva - 1);
+    atualizarInfoUltimaAtualizacao();
+  }, 1000);
+}
+
+// ── Auto-refresh ─────────────────────────────────────────────────────────────
+function iniciarAutoRefresh() {
+  clearInterval(timerIntervalo);
+  timerIntervalo = setInterval(carregarFila, INTERVALO_ATUALIZACAO_MS);
+}
+
+// ── Eventos ───────────────────────────────────────────────────────────────────
+btnAtualizar?.addEventListener("click", () => {
+  clearInterval(timerIntervalo);
+  carregarFila();
+  iniciarAutoRefresh();
+});
+
+buscaEl?.addEventListener("input", renderizarFila);
+filtroStatusEl?.addEventListener("change", renderizarFila);
+
+// ── Inicialização ─────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  carregarFila();
+  iniciarAutoRefresh();
+});
+</script>
+</body></html>
