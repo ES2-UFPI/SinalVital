@@ -297,3 +297,189 @@ class TestFluxoEndToEndPainelMedico:
             },
         )
         assert resp_422.status_code == 422
+
+    def test_liberacao_de_vaga_apos_consulta_e_alocacao_do_proximo_paciente_por_prioridade(
+        self, client, db_session
+    ):
+        """
+        Garante que:
+        1. A capacidade simultânea do médico é rigorosamente respeitada (ex.: 2 vagas).
+        2. Pacientes excedentes ficam como 'Aguardando vaga na especialidade' (medico_id=None).
+        3. Ao registrar uma consulta (POST /consultas), o item atendido muda para status='atendido',
+           sai da fila de espera (GET /fila?status=aguardando) e libera 1 vaga do médico.
+        4. O próximo paciente aguardando na especialidade com MAIOR score de prioridade é
+           alocado automaticamente ao médico, sem ultrapassar sua capacidade simultânea.
+        """
+        dra_helena = Medico(
+            nome="Dra. Helena",
+            especialidade="cardiologia",
+            capacidade_simultanea=2,
+            ativo=True,
+        )
+        db_session.add(dra_helena)
+        db_session.commit()
+        db_session.refresh(dra_helena)
+
+        def criar_paciente_e_triagem(nome: str, email: str, relato: str) -> tuple[int, int]:
+            p_resp = client.post(
+                "/pacientes",
+                json={"nome": nome, "email": email, "idade": 60},
+            )
+            assert p_resp.status_code == 201
+            p_id = p_resp.json()["id"]
+
+            t_resp = client.post(
+                f"/pacientes/{p_id}/triagens",
+                json={"relato": relato, "estrategia": "palavras_chave"},
+            )
+            assert t_resp.status_code == 201
+            return p_id, t_resp.json()["id"]
+
+        # Pacientes 1 e 2 ocupam as 2 vagas simultâneas da Dra. Helena
+        p1_id, t1_id = criar_paciente_e_triagem(
+            "Paciente 1", "p1@sinalvital.com", "Palpitações no coração"
+        )
+        p2_id, t2_id = criar_paciente_e_triagem(
+            "Paciente 2", "p2@sinalvital.com", "Pressão alta e cansaço no coração"
+        )
+        # Pacientes 3 (baixa urgência) e 4 (emergência) chegam com a médica já lotada (2/2)
+        p3_id, t3_id = criar_paciente_e_triagem(
+            "Paciente 3 Rotina", "p3@sinalvital.com", "Check-up do coração"
+        )
+        p4_id, t4_id = criar_paciente_e_triagem(
+            "Paciente 4 Emergência", "p4@sinalvital.com", "Dor forte no peito e falta de ar"
+        )
+
+        f1 = client.post("/fila", json={"triagem_id": t1_id}).json()
+        f2 = client.post("/fila", json={"triagem_id": t2_id}).json()
+        f3 = client.post("/fila", json={"triagem_id": t3_id}).json()
+        f4 = client.post("/fila", json={"triagem_id": t4_id}).json()
+
+        assert f1["medico_id"] == dra_helena.id
+        assert f2["medico_id"] == dra_helena.id
+        # Lotada (2/2): p3 e p4 ficam aguardando vaga na especialidade
+        assert f3["medico_id"] is None
+        assert f3["medico_alocado"] == "Aguardando vaga na especialidade"
+        assert f4["medico_id"] is None
+        assert f4["medico_alocado"] == "Aguardando vaga na especialidade"
+
+        # Verifica que listar a fila antes de liberar vaga mantém apenas 2 alocados à Dra. Helena
+        fila_inicial = client.get("/fila?status=aguardando").json()
+        alocados_iniciais = [
+            i for i in fila_inicial if i["medico_id"] == dra_helena.id
+        ]
+        assert len(alocados_iniciais) == 2
+
+        # Dra. Helena realiza a consulta do Paciente 1 -> libera 1 vaga (carga cai para 1/2)
+        resp_consulta_p1 = client.post(
+            "/consultas",
+            json={
+                "paciente_id": p1_id,
+                "medico_id": dra_helena.id,
+                "diagnostico": "Taquicardia sinusal controlada",
+                "conduta": "Orientação e acompanhamento ambulatorial",
+            },
+        )
+        assert resp_consulta_p1.status_code == 201
+
+        # Ao consultar a fila de espera, p1 saiu (status='atendido') e p4 (maior score: emergência)
+        # foi promovido automaticamente para a vaga da Dra. Helena, enquanto p3 segue aguardando
+        fila_apos_1a_consulta = client.get("/fila?status=aguardando").json()
+        ids_aguardando = [i["paciente_id"] for i in fila_apos_1a_consulta]
+        assert p1_id not in ids_aguardando
+
+        mapa_fila = {i["paciente_id"]: i for i in fila_apos_1a_consulta}
+        assert mapa_fila[p4_id]["medico_id"] == dra_helena.id
+        assert mapa_fila[p4_id]["medico_alocado"] == "Dra. Helena"
+        assert mapa_fila[p3_id]["medico_id"] is None
+        assert mapa_fila[p3_id]["medico_alocado"] == "Aguardando vaga na especialidade"
+
+        # Capacidade simultânea (2) continua rigorosamente respeitada (p2 + p4)
+        alocados_apos_1a = [
+            i for i in fila_apos_1a_consulta if i["medico_id"] == dra_helena.id
+        ]
+        assert len(alocados_apos_1a) == 2
+
+        # Dra. Helena realiza a consulta do Paciente 4 -> libera mais 1 vaga e promove o Paciente 3
+        resp_consulta_p4 = client.post(
+            "/consultas",
+            json={
+                "paciente_id": p4_id,
+                "medico_id": dra_helena.id,
+                "diagnostico": "Síndrome coronariana aguda estabilizada",
+                "conduta": "Encaminhamento hospitalar imediato",
+            },
+        )
+        assert resp_consulta_p4.status_code == 201
+
+        fila_apos_2a_consulta = client.get("/fila?status=aguardando").json()
+        mapa_fila_2 = {i["paciente_id"]: i for i in fila_apos_2a_consulta}
+        assert p4_id not in mapa_fila_2
+        assert mapa_fila_2[p3_id]["medico_id"] == dra_helena.id
+        assert mapa_fila_2[p3_id]["medico_alocado"] == "Dra. Helena"
+
+    def test_bloqueia_consulta_para_paciente_sem_triagem_ou_de_outra_especialidade(
+        self, client, db_session
+    ):
+        """
+        Garante que o médico não pode registrar consulta para paciente que não passou
+        pela triagem/fila ou que foi alocado para outra especialidade/médico.
+        """
+        dra_helena = Medico(
+            nome="Dra. Helena",
+            especialidade="cardiologia",
+            capacidade_simultanea=2,
+            ativo=True,
+        )
+        dra_ana = Medico(
+            nome="Dra. Ana",
+            especialidade="oftalmologia",
+            capacidade_simultanea=2,
+            ativo=True,
+        )
+        db_session.add_all([dra_helena, dra_ana])
+        db_session.commit()
+        db_session.refresh(dra_helena)
+        db_session.refresh(dra_ana)
+
+        # Paciente 1: triado para Oftalmologia e alocado para Dra. Ana
+        p_oftalmo = client.post(
+            "/pacientes",
+            json={"nome": "Juscelio Visao", "email": "juscelio@sinalvital.com", "idade": 50},
+        ).json()
+        t_oftalmo = client.post(
+            f"/pacientes/{p_oftalmo['id']}/triagens",
+            json={"relato": "Dor no olho e visão turva", "estrategia": "palavras_chave"},
+        ).json()
+        client.post("/fila", json={"triagem_id": t_oftalmo["id"]})
+
+        # Paciente 2: apenas cadastrado, sem nenhuma triagem realizada
+        p_sem_triagem = client.post(
+            "/pacientes",
+            json={"nome": "Paciente Sem Triagem", "email": "semtriagem@sinalvital.com", "idade": 30},
+        ).json()
+
+        # Dra. Helena tenta atender o paciente sem triagem -> 400
+        resp_sem_triagem = client.post(
+            "/consultas",
+            json={
+                "paciente_id": p_sem_triagem["id"],
+                "medico_id": dra_helena.id,
+                "diagnostico": "Tentativa indevida",
+                "conduta": "Nenhuma",
+            },
+        )
+        assert resp_sem_triagem.status_code == 400
+
+        # Dra. Helena tenta atender o paciente alocado para Dra. Ana (Oftalmologia) -> 400
+        resp_outra_esp = client.post(
+            "/consultas",
+            json={
+                "paciente_id": p_oftalmo["id"],
+                "medico_id": dra_helena.id,
+                "diagnostico": "Tentativa cruzada",
+                "conduta": "Nenhuma",
+            },
+        )
+        assert resp_outra_esp.status_code == 400
+
