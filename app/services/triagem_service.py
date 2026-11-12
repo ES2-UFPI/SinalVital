@@ -8,6 +8,14 @@ class PacienteNaoEncontradoError(Exception):
     pass
 
 
+MAPA_URGENCIA_CLASSIFICACAO = {
+    "emergencia": ("vermelho", 1),
+    "alta": ("laranja", 2),
+    "media": ("amarelo", 3),
+    "baixa": ("verde", 4),
+}
+
+
 class TriagemService:
     def __init__(self, repo: TriagemRepository):
         self.repo = repo
@@ -23,15 +31,24 @@ class TriagemService:
         classificador_ia_mock = ClassificadorFactory.criar()
         classificacao_detalhada = classificador_ia_mock.classificar(relato)
 
+        urgencia_final = classificacao_detalhada["urgencia"]
+        classificacao_unificada, prioridade_unificada = (
+            MAPA_URGENCIA_CLASSIFICACAO.get(
+                urgencia_final,
+                (resultado.classificacao, resultado.prioridade),
+            )
+        )
+
         triagem = Triagem(
             paciente_id=paciente_id,
             relato=relato,
             estrategia=classificador.nome,
-            classificacao=resultado.classificacao,
-            prioridade=resultado.prioridade,
-            urgencia=classificacao_detalhada["urgencia"],
+            classificacao=classificacao_unificada,
+            prioridade=prioridade_unificada,
+            urgencia=urgencia_final,
             especialidade=classificacao_detalhada["especialidade"],
-            justificativa=resultado.justificativa,
+            justificativa=classificacao_detalhada.get("justificativa")
+            or resultado.justificativa,
         )
 
         return self.repo.salvar(triagem)

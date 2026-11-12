@@ -964,3 +964,285 @@ body.high-contrast .notice {
 .hint {
     font-size: .85rem
 }
+
+
+/* Painel médico (Issue #47): fila priorizada e registro clínico de consulta. */
+.brand-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px
+}
+
+.header-subtitle {
+    margin: 0;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--muted)
+}
+
+.card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 28px;
+    border-radius: 14px
+}
+
+.result-card {
+    margin-top: 24px;
+    border: 2px solid var(--line);
+    padding: 22px;
+    border-radius: 12px;
+    overflow-wrap: anywhere
+}
+
+.result-card h2,
+.result-card h3 {
+    margin-top: 10px
+}
+
+.field-help {
+    font-size: .85rem;
+    color: var(--muted);
+    margin: -10px 0 18px
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 11px 18px;
+    border-radius: 9px;
+    font-weight: 650;
+    font-size: .86rem;
+    text-decoration: none;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--navy);
+    line-height: 1.4
+}
+
+.btn:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent)
+}
+
+.btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff
+}
+
+.btn-primary:hover {
+    background: var(--accent);
+    color: #fff;
+    filter: brightness(.92)
+}
+
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px
+}
+
+.feedback:empty {
+    display: none
+}
+
+.doctor-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr);
+    gap: 24px;
+    align-items: start
+}
+
+.queue-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px
+}
+
+.queue-header h2 {
+    margin-bottom: 6px
+}
+
+.queue-header .field-help {
+    margin: 0
+}
+
+.queue-filter {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line)
+}
+
+.queue-filter .field-help {
+    margin-bottom: 0
+}
+
+.queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px
+}
+
+.queue-card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-left: 5px solid var(--navy);
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-wrap: anywhere;
+    transition: border-color .15s, box-shadow .15s
+}
+
+.queue-card.vermelho,
+.queue-card.emergencia {
+    border-left-color: #a61630
+}
+
+.queue-card.laranja,
+.queue-card.alta {
+    border-left-color: #873700
+}
+
+.queue-card.amarelo,
+.queue-card.media {
+    border-left-color: #6b4f00
+}
+
+.queue-card.verde,
+.queue-card.baixa {
+    border-left-color: #1e6041
+}
+
+.queue-card.azul {
+    border-left-color: #164b8a
+}
+
+.queue-card.is-selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft)
+}
+
+.queue-card-top,
+.queue-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px
+}
+
+.queue-card h3 {
+    margin: 0;
+    font-size: 1.05rem
+}
+
+.queue-score {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--navy);
+    color: #fff;
+    font-weight: 750;
+    font-size: .78rem;
+    padding: 5px 11px;
+    border-radius: 20px;
+    letter-spacing: .02em
+}
+
+.queue-meta {
+    font-size: .82rem;
+    color: var(--muted);
+    margin: 0
+}
+
+.queue-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px
+}
+
+.patient-banner {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    font-size: .86rem;
+    color: var(--ink);
+    overflow-wrap: anywhere
+}
+
+.patient-banner strong {
+    color: var(--navy);
+    display: block;
+    margin-bottom: 4px
+}
+
+.patient-banner p {
+    margin: 0
+}
+
+body.high-contrast .card,
+body.high-contrast .result-card,
+body.high-contrast .queue-card {
+    background: #101010;
+    border-color: #fff;
+    color: #fff
+}
+
+body.high-contrast .btn {
+    background: #101010;
+    border-color: #fff;
+    color: #fff
+}
+
+body.high-contrast .btn-primary {
+    background: #ffdf00;
+    border-color: #ffdf00;
+    color: #000
+}
+
+body.high-contrast .queue-score {
+    background: #ffdf00;
+    color: #000;
+    border: 1px solid #fff
+}
+
+body.high-contrast .patient-banner {
+    background: #101010;
+    border-color: #ffdf00;
+    color: #fff
+}
+
+body.high-contrast .patient-banner strong {
+    color: #ffdf00
+}
+
+@media(max-width:900px) {
+    .doctor-grid {
+        grid-template-columns: 1fr
+    }
+
+    .queue-header {
+        flex-direction: column;
+        align-items: stretch
+    }
+
+    .queue-header .btn,
+    .form-actions .btn {
+        width: 100%
+    }
+}

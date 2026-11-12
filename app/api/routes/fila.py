@@ -123,7 +123,7 @@ def listar_fila(
     itens = query.all()
 
     # Recalcula e atualiza o score de espera para itens em espera
-    alterou_score = False
+    alterou_banco = False
     for item in itens:
         if item.triagem and item.triagem.urgencia:
             urg = item.triagem.urgencia.lower()
@@ -131,16 +131,59 @@ def listar_fila(
                 score_atual = MotorPriorizacao.calcular_score(urg, item.triagem.criado_em)
                 if item.score != score_atual:
                     item.score = score_atual
-                    alterou_score = True
-
-    if alterou_score:
-        db.commit()
+                    alterou_banco = True
 
     # Ordena por score decrescente, e por horário de criação como desempate
     itens_ordenados = sorted(
         itens,
         key=lambda i: (-i.score, i.criado_em, i.id),
     )
+
+    # Promove automaticamente pacientes que estavam 'Aguardando vaga na especialidade'
+    # (medico_id is None e status == 'aguardando') caso uma vaga tenha sido liberada,
+    # respeitando a ordem decrescente de prioridade (score).
+    itens_sem_medico = [
+        i
+        for i in itens_ordenados
+        if i.medico_id is None
+        and i.status == "aguardando"
+        and i.triagem is not None
+        and i.triagem.especialidade
+    ]
+    if itens_sem_medico:
+        cargas_raw = (
+            db.query(ItemFila.medico_id, func.count(ItemFila.id))
+            .filter(
+                ItemFila.medico_id.isnot(None),
+                ItemFila.status.in_(["aguardando", "em_atendimento"]),
+            )
+            .group_by(ItemFila.medico_id)
+            .all()
+        )
+        carga_atual = {m_id: count for m_id, count in cargas_raw if m_id is not None}
+
+        for item in itens_sem_medico:
+            especialidade = item.triagem.especialidade
+            medicos_esp = (
+                db.query(Medico)
+                .filter(Medico.ativo.is_(True), Medico.especialidade == especialidade)
+                .all()
+            )
+            medico_escolhido = MotorPriorizacao.escolher_medico(
+                especialidade=especialidade,
+                medicos=medicos_esp,
+                carga_atual=carga_atual,
+            )
+            if medico_escolhido is not None:
+                item.medico_id = medico_escolhido.id
+                item.medico = medico_escolhido
+                carga_atual[medico_escolhido.id] = (
+                    carga_atual.get(medico_escolhido.id, 0) + 1
+                )
+                alterou_banco = True
+
+    if alterou_banco:
+        db.commit()
 
     return itens_ordenados
 

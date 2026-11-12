@@ -17,6 +17,8 @@ MEDICOS_DEMONSTRACAO = (
     {"nome": "Helena", "especialidade": "cardiologia", "capacidade_simultanea": 2, "ativo": True},
     {"nome": "Ana", "especialidade": "oftalmologia", "capacidade_simultanea": 1, "ativo": True},
     {"nome": "Carlos", "especialidade": "clinica_geral", "capacidade_simultanea": 3, "ativo": True},
+    {"nome": "Jurinaldo", "especialidade": "clinica_geral", "capacidade_simultanea": 3, "ativo": True},
+    
 )
 
 
