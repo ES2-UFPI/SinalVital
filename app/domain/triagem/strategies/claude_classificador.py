@@ -11,7 +11,7 @@ git). Por privacidade, o log não registra a chave nem o relato do paciente.
 import json
 import logging
 import os
-from typing import Optional
+from typing import Optional, Sequence
 
 import httpx
 
@@ -20,6 +20,7 @@ from app.domain.triagem.strategies.classificador import (
     MockClassificador,
     ResultadoClassificacao,
 )
+from app.domain.triagem.strategies.exemplos_few_shot import EXEMPLOS
 from app.triagem.regras import NIVEIS, ROTULO_ESPECIALIDADE
 
 logger = logging.getLogger(__name__)
@@ -94,12 +95,25 @@ class ClaudeClassificador(Classificador):
         timeout: float = TIMEOUT_SEGUNDOS,
         cliente: Optional[httpx.Client] = None,
         fallback: Optional[Classificador] = None,
+        exemplos: Optional[Sequence[dict]] = None,
     ):
         self._api_key = api_key
         self._modelo = modelo
         self._timeout = timeout
         self._cliente = cliente
         self._fallback = fallback or MockClassificador()
+        # None usa os exemplos padrão (few-shot); () desliga os exemplos (zero-shot).
+        self._exemplos = EXEMPLOS if exemplos is None else tuple(exemplos)
+
+    def _mensagens(self, texto_sintomas: str) -> list:
+        """Few-shot: pares relato -> JSON esperado, e por último o relato real."""
+        mensagens = []
+        for exemplo in self._exemplos:
+            resposta = {campo: exemplo[campo] for campo in ("urgencia", "especialidade", "justificativa")}
+            mensagens.append({"role": "user", "content": f"<relato>{exemplo['relato']}</relato>"})
+            mensagens.append({"role": "assistant", "content": json.dumps(resposta, ensure_ascii=False)})
+        mensagens.append({"role": "user", "content": f"<relato>{texto_sintomas.strip()}</relato>"})
+        return mensagens
 
     def classificar(self, texto_sintomas: str) -> ResultadoClassificacao:
         if not (texto_sintomas or "").strip():
@@ -125,9 +139,7 @@ class ClaudeClassificador(Classificador):
             "model": self._modelo or os.getenv("ANTHROPIC_MODEL") or MODELO_PADRAO,
             "max_tokens": MAX_TOKENS,
             "system": PROMPT_SISTEMA,
-            "messages": [
-                {"role": "user", "content": f"<relato>{texto_sintomas.strip()}</relato>"}
-            ],
+            "messages": self._mensagens(texto_sintomas),
         }
         cabecalhos = {
             "x-api-key": chave,

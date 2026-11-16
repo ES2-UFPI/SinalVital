@@ -196,6 +196,24 @@ ANTHROPIC_API_KEY=sua-chave
   a rede.
 - É uma triagem de apoio, sem validação clínica: não faz diagnóstico nem substitui um médico.
 
+### Few-shot prompting e avaliação
+
+O `ClaudeClassificador` envia, antes do relato real, exemplos resolvidos (relato → JSON esperado) de
+`app/domain/triagem/strategies/exemplos_few_shot.py`. Isso calibra o critério de urgência e fixa o
+formato da resposta. Para voltar ao modo sem exemplos: `ClaudeClassificador(exemplos=())`.
+Os exemplos são decisões de triagem e **precisam ser revisados pelo time e pelo professor**.
+
+Para comparar mock, zero-shot e few-shot nos casos de `scripts/casos_avaliacao.json`:
+
+```powershell
+.\venv\Scripts\python.exe -m scripts.avaliar_classificador               # usa a API: consome crédito
+.\venv\Scripts\python.exe -m scripts.avaliar_classificador --modos mock  # sem custo e sem chave
+```
+
+O script mostra acertos de urgência e de especialidade e a **subtriagem** (urgência subestimada, o
+erro mais grave). O gabarito é um rascunho sem validação clínica e os casos não repetem os exemplos
+(há um teste que garante isso). Com poucos casos e uma única execução, os números são indicativos.
+
 ## Testes
 
 Após a integração com a dev, `app/ia_service.py` mantém os imports anteriores
