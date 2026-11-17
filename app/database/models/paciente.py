@@ -30,6 +30,13 @@ class Paciente(Base):
 
     triagens= relationship("Triagem", back_populates= "paciente", cascade="all, delete-orphan", order_by="desc(Triagem.criado_em)")
 
+    itens_fila = relationship(
+        "ItemFila",
+        back_populates="paciente",
+        cascade="all, delete-orphan",
+        order_by="desc(ItemFila.criado_em)",
+    )
+
 
 class EventoHistorico(Base):
     # ENTIDADE PARA O HISTORICO DE CADA PACIENTE

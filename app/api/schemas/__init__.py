@@ -5,6 +5,14 @@ from .paciente import (
     PacienteResposta,
     HistoricoUnificadoResposta,
 )
+from .item_fila import (
+    ItemFilaCreate,
+    ItemFilaResponse,
+    ItemFilaEntrada,
+    ItemFilaResposta,
+    FilaCreate,
+    FilaResponse,
+)
 
 __all__ = [
     "EventoHistoricoEntrada",
@@ -12,4 +20,10 @@ __all__ = [
     "PacienteEntrada",
     "PacienteResposta",
     "HistoricoUnificadoResposta",
+    "ItemFilaCreate",
+    "ItemFilaResponse",
+    "ItemFilaEntrada",
+    "ItemFilaResposta",
+    "FilaCreate",
+    "FilaResponse",
 ]

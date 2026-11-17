@@ -1,5 +1,100 @@
 # SinalVital
 
+## Matching de médicos — [008-02] (#41)
+
+`MotorPriorizacao.escolher_medico(especialidade, medicos, carga_atual)`, em
+`app/domain/queue/motor_priorizacao.py`, seleciona somente médicos ativos da
+especialidade indicada, com carga inferior à capacidade simultânea. A menor
+carga absoluta vence; em caso de empate, vence o menor ID, independentemente
+da ordem da lista. A especialidade deve usar o mesmo identificador do modelo,
+como `cardiologia`, `oftalmologia` ou `clinica_geral`.
+
+`carga_atual` é um mapa `{id_medico: quantidade_atual}` de contagens não negativas.
+IDs ausentes contam como zero; entradas referentes a outros médicos são ignoradas.
+O método retorna o próprio médico selecionado ou `None` quando não há vaga.
+Na integração dos endpoints da fila (#44), `None` deve ser apresentado como
+`AGUARDANDO_VAGA_NA_ESPECIALIDADE`, cujo valor é `"Aguardando vaga na especialidade"`.
+
+```python
+from app.database.models import Medico
+from app.domain.queue.motor_priorizacao import (
+    MotorPriorizacao, AGUARDANDO_VAGA_NA_ESPECIALIDADE,
+)
+
+medicos = [
+    Medico(id=1, nome="Helena", especialidade="cardiologia",
+           capacidade_simultanea=2, ativo=True),
+]
+medico = MotorPriorizacao.escolher_medico("cardiologia", medicos, {1: 1})
+estado = medico.nome if medico is not None else AGUARDANDO_VAGA_NA_ESPECIALIDADE
+```
+
+Esta operação não consulta o banco, modifica as cargas nem reserva vagas. A
+camada que aloca o atendimento deve obter cargas atuais e controlar concorrência.
+Nenhuma rota nova foi adicionada nesta issue. Os 15 cenários TDD estão em
+`tests/unit/test_escolher_medico.py`, incluindo uso com o modelo SQLAlchemy,
+capacidade atingida/excedida, menor carga, empate, inativos e ausência de vaga.
+Para executá-los:
+
+```powershell
+.\venv\Scripts\python.exe -m pytest tests/unit/test_escolher_medico.py -q
+```
+
+O workflow existente os executa junto à suíte nos PRs destinados à `dev`.
+
+## Médicos — [008-01] (#40)
+
+O modelo `Medico` está em `app/database/models/medico.py`. A tabela `medicos`
+contém `id`, `nome`, `especialidade`, `capacidade_simultanea` e `ativo`.
+Por padrão, a capacidade é 1 e o médico está ativo. A capacidade deve ser positiva.
+A tabela é criada na inicialização da API ou na execução do seed; não é preciso
+apagar o banco existente para acrescentá-la.
+
+Para popular os pacientes e os três médicos fictícios de demonstração:
+
+```powershell
+.\venv\Scripts\python.exe -m app.seed
+.\venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+O seed inclui cardiologia, oftalmologia e clínica geral, com nomes fictícios e
+capacidades de 2, 1 e 3 atendimentos simultâneos, respectivamente. Todos começam
+ativos. A repetição do comando identifica cada médico de demonstração por nome
+e especialidade, sem duplicar nem sobrescrever sua capacidade ou estado ativo.
+Se nome ou especialidade forem alterados, o registro original da demonstração
+será inserido novamente. Essa identificação é específica do seed, não uma regra
+de unicidade para todos os médicos. Os pacientes continuam sendo incluídos.
+
+Abra http://127.0.0.1:8000/medicos no navegador para consultar o JSON, ou use
+`GET /medicos` em http://127.0.0.1:8000/docs. A resposta é `200` com uma lista
+ordenada por nome (ID como desempate); sem médicos cadastrados, retorna `[]`.
+Cada item contém `id`, `nome`, `especialidade`, `capacidade_simultanea` e `ativo`.
+A listagem inclui tanto médicos ativos quanto inativos.
+
+```json
+{
+  "id": 1,
+  "nome": "Helena",
+  "especialidade": "cardiologia",
+  "capacidade_simultanea": 2,
+  "ativo": true
+}
+```
+
+O desenvolvimento seguiu TDD: cinco testes foram executados e falharam antes
+da implementação; após a implementação, a suíte completa passou. Os testes em
+`tests/integration/test_medicos.py` cobrem listagem vazia, ordenação e resposta,
+persistência, capacidade positiva, valores padrão, médicos inativos, seed
+repetível e preservação do seed de pacientes. Os testes foram ajustados em um
+novo ciclo Red/Green após a confirmação da descrição completa da issue.
+São descobertos pelo `python -m pytest -q` e pelo workflow existente em PRs
+destinados à `dev`. Esta entrega não inclui cadastro HTTP ou tela de médicos.
+
+Se você executou a primeira versão local da #40 (com CRM), a tabela `medicos`
+antiga não é atualizada pelo `create_all`. Para testar sem alterar os dados
+existentes, use `DATABASE_URL=sqlite:///./sinalvital-medicos-v2.db` no `.env`
+antes de executar o seed e reinicie a API. Nenhum banco anterior é apagado.
+
 Projeto da disciplina de Engenharia de Software. A aplicação principal está em
 `app/`; `tutorial-demo/` é uma demonstração independente dos tutoriais.
 
@@ -52,11 +147,11 @@ e a implementação inicial `MockClassificador`. A `ClassificadorFactory` escolh
 a implementação lendo `MODO_IA` a cada chamada de `criar()`:
 
 - Ausente ou `mock`: usa o mock.
-- `real`: também usa o mock enquanto a implementação real não existir.
+- `real`: usa o `ClaudeClassificador` (issue #48, [005-06]), que consulta a API da Anthropic. Veja a seção abaixo.
 - Outro valor (inclusive vazio): gera `ValueError` para indicar configuração inválida.
 
 O `.env` é carregado sem sobrescrever as variáveis do ambiente. O modo aceita
-maiúsculas e espaços nas extremidades. Não são necessárias chave de API ou rede.
+maiúsculas e espaços nas extremidades. No modo `mock` não são necessárias chave de API ou rede.
 
 ```python
 from app.ia_service import ClassificadorFactory
@@ -75,6 +170,49 @@ busca de termos, mantendo as cores da dev. Retorna `urgencia`, `especialidade` e
 `justificativa`; relatos vazios geram `ValueError`. É uma simulação didática.
 A expansão das regras pertence à [005-03], e a exposição pelo endpoint
 `POST /triagens` à [005-04]. Esta etapa não adiciona uma rota de classificação.
+
+### ClaudeClassificador (`MODO_IA=real`) — issue #48 ([005-06])
+
+`app/domain/triagem/strategies/claude_classificador.py` implementa a mesma interface `Classificador`
+e consome a API de mensagens da Anthropic via `httpx`. A rota e o frontend não mudam: só a
+`ClassificadorFactory` decide a Strategy.
+
+Para usar, no `.env`:
+
+```
+MODO_IA=real
+ANTHROPIC_API_KEY=sua-chave
+# opcional: ANTHROPIC_MODEL=outro-modelo
+```
+
+- O prompt pede um JSON com `urgencia` (`emergencia|alta|media|baixa`), `especialidade`
+  (`cardiologia|oftalmologia|dermatologia|clinica_geral`) e `justificativa`. Valores fora dessas listas
+  tornam a resposta inválida.
+- **Fallback seguro:** chave ausente, falha de rede, timeout (15 s), erro HTTP ou resposta inválida
+  geram um aviso no log e a classificação é feita pelo `MockClassificador`. O log não registra a
+  chave nem o relato do paciente.
+- A chave só existe em variável de ambiente/`.env` (ignorado pelo git). **Nunca** a coloque no código.
+- A chamada à API gera custo na conta Anthropic. Os testes usam `httpx.MockTransport` e não acessam
+  a rede.
+- É uma triagem de apoio, sem validação clínica: não faz diagnóstico nem substitui um médico.
+
+### Few-shot prompting e avaliação
+
+O `ClaudeClassificador` envia, antes do relato real, exemplos resolvidos (relato → JSON esperado) de
+`app/domain/triagem/strategies/exemplos_few_shot.py`. Isso calibra o critério de urgência e fixa o
+formato da resposta. Para voltar ao modo sem exemplos: `ClaudeClassificador(exemplos=())`.
+Os exemplos são decisões de triagem e **precisam ser revisados pelo time e pelo professor**.
+
+Para comparar mock, zero-shot e few-shot nos casos de `scripts/casos_avaliacao.json`:
+
+```powershell
+.\venv\Scripts\python.exe -m scripts.avaliar_classificador               # usa a API: consome crédito
+.\venv\Scripts\python.exe -m scripts.avaliar_classificador --modos mock  # sem custo e sem chave
+```
+
+O script mostra acertos de urgência e de especialidade e a **subtriagem** (urgência subestimada, o
+erro mais grave). O gabarito é um rascunho sem validação clínica e os casos não repetem os exemplos
+(há um teste que garante isso). Com poucos casos e uma única execução, os números são indicativos.
 
 ## Testes
 
@@ -147,3 +285,29 @@ O comando utiliza o `DATABASE_URL` configurado, faz um backup SQLite consistente
 (`*.backup-*.db`) e adiciona as colunas `estrategia`, `classificacao` e `prioridade`
 ausentes. Registros anteriores são preservados. Pode ser executado novamente sem
 duplicar alterações. Reinicie o servidor após a atualização e recarregue o navegador.
+
+## Integração contínua — CI-01 (#39)
+
+O workflow `.github/workflows/pytest.yml` executa a suíte em pushes na branch
+`dev` e em pull requests destinados a `dev`. No GitHub, acompanhe
+o resultado na aba **Actions**, no workflow **Testes Python**, ou nos checks do PR.
+
+O job usa Ubuntu e Python 3.12, instala `requirements-dev.txt` (que também inclui
+as dependências da aplicação) e executa `python -m pytest -q` na raiz do projeto.
+O cache do pip considera ambos os arquivos de dependências. O ambiente usa
+`MODO_IA=mock` e SQLite em memória, sem depender do `.env`, banco local ou chave
+de API. Não é necessário iniciar o servidor nem executar o seed.
+
+Falhas de instalação ou de testes interrompem o job e produzem um check de falha;
+o limite de execução é de 10 minutos. O workflow tem permissão somente de leitura
+do repositório e não publica código. Exigir o check para permitir merge depende
+de uma regra de proteção da branch, configurada separadamente no GitHub.
+
+Para reproduzir os testes no PowerShell:
+
+```powershell
+$env:MODO_IA = "mock"
+$env:DATABASE_URL = "sqlite:///:memory:"
+.\venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\venv\Scripts\python.exe -m pytest -q
+```

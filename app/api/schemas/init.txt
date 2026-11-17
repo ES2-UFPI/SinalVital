@@ -1,0 +1,3 @@
+Tabela ItemFila com chaves para Paciente, Triagem e Medico (médico opcional).
+
+Schemas Pydantic de entrada e de saída.

@@ -29,13 +29,13 @@ TERMOS_URGENCIA: Dict[str, Tuple[str, ...]] = {
         "perda subita de visao", "perda de visao", "produto quimico no olho",
     ),
     "alta": (
-        "febre alta", "febre", "dor forte", "vomito", "vomitos", "tontura",
+        "febre alta", "dor forte", "vomito", "vomitos", "tontura",
         "palpitacao", "palpitacoes", "inchaco nas pernas", "pressao alta",
         "visao turva", "visao embacada", "visao dupla", "dor no olho",
         "sensibilidade a luz",
     ),
     "media": (
-        "tosse", "dor de garganta", "dor de cabeca", "dor nas costas", "diarreia",
+        "febre", "tosse", "dor de garganta", "dor de cabeca", "dor nas costas", "diarreia",
         "nausea", "olho vermelho", "olho seco", "olhos secos", "coceira nos olhos",
         "ardencia nos olhos", "cansaco",
     ),

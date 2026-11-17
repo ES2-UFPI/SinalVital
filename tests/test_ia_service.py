@@ -19,12 +19,23 @@ def test_factory_padrao(monkeypatch):
     assert isinstance(ClassificadorFactory.criar(), MockClassificador)
 
 
-@pytest.mark.parametrize("modo", ["mock", "real", " MOCK ", " REAL "])
-def test_factory_modos_suportados(monkeypatch, modo):
+@pytest.mark.parametrize("modo", ["mock", " MOCK "])
+def test_factory_modo_mock(monkeypatch, modo):
     monkeypatch.setenv("MODO_IA", modo)
     classificador = ClassificadorFactory.criar()
     assert isinstance(classificador, Classificador)
     assert isinstance(classificador, MockClassificador)
+    assert classificador.classificar("dor no peito")["urgencia"] == "emergencia"
+
+
+@pytest.mark.parametrize("modo", ["real", " REAL "])
+def test_factory_modo_real_usa_estrategia_real_com_fallback_no_mock(monkeypatch, modo):
+    # Sem chave de API não há chamada de rede: o fallback seguro usa o mock.
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("MODO_IA", modo)
+    classificador = ClassificadorFactory.criar()
+    assert isinstance(classificador, Classificador)
+    assert not isinstance(classificador, MockClassificador)
     assert classificador.classificar("dor no peito")["urgencia"] == "emergencia"
 
 

@@ -45,5 +45,8 @@ class ClassificadorFactory:
         modo = os.getenv("MODO_IA", "mock").strip().lower()
         if modo not in {"mock", "real"}:
             raise ValueError("MODO_IA inválido. Use 'mock' ou 'real'.")
-        # Fallback previsto na issue: ainda não há Strategy real na aplicação principal.
+        if modo == "real":
+            # Import tardio: o módulo da Strategy real importa este arquivo (evita ciclo).
+            from app.domain.triagem.strategies.claude_classificador import ClaudeClassificador
+            return ClaudeClassificador()
         return MockClassificador()
