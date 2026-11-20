@@ -146,17 +146,17 @@ class ClaudeClassificador(Classificador):
             "anthropic-version": VERSAO_API,
             "content-type": "application/json",
         }
-        if self._cliente is not None:
-            resposta = self._cliente.post(
-                URL_API, headers=cabecalhos, json=corpo, timeout=self._timeout
-            )
-        else:
-            with httpx.Client() as cliente:
-                resposta = cliente.post(
-                    URL_API, headers=cabecalhos, json=corpo, timeout=self._timeout
-                )
+        resposta = self._enviar(corpo, cabecalhos)
         resposta.raise_for_status()
         return _validar(_extrair_json(self._texto_da_resposta(resposta)))
+
+    def _enviar(self, corpo: dict, cabecalhos: dict) -> httpx.Response:
+        """Envia o POST com o cliente injetado (testes) ou com um cliente novo."""
+        argumentos = {"headers": cabecalhos, "json": corpo, "timeout": self._timeout}
+        if self._cliente is not None:
+            return self._cliente.post(URL_API, **argumentos)
+        with httpx.Client() as cliente:
+            return cliente.post(URL_API, **argumentos)
 
     @staticmethod
     def _texto_da_resposta(resposta: httpx.Response) -> str:
