@@ -13,6 +13,11 @@ from .item_fila import (
     FilaCreate,
     FilaResponse,
 )
+from .agendamento import (
+    AgendamentoCreate,
+    AgendamentoResponse,
+    DisponibilidadeDiaResponse,
+)
 
 __all__ = [
     "EventoHistoricoEntrada",
@@ -26,4 +31,7 @@ __all__ = [
     "ItemFilaResposta",
     "FilaCreate",
     "FilaResponse",
+    "AgendamentoCreate",
+    "AgendamentoResponse",
+    "DisponibilidadeDiaResponse",
 ]
