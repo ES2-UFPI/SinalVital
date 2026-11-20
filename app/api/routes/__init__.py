@@ -3,6 +3,7 @@ from .triagens import router as triagens_router
 from .medicos import router as medicos_router
 from .consultas import router as consultas_router
 from .fila import router as fila_router
+from .agendamentos import router as agendamentos_router
 
 all_routers = [
     pacientes_router,
@@ -10,6 +11,7 @@ all_routers = [
     medicos_router,
     consultas_router,
     fila_router,
+    agendamentos_router,
 ]
 
 __all__ = [
@@ -18,5 +20,6 @@ __all__ = [
     "medicos_router",
     "consultas_router",
     "fila_router",
+    "agendamentos_router",
     "all_routers",
 ]

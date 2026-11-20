@@ -8,17 +8,62 @@ from .database.models import Medico, Paciente
 
 PACIENTES_DEMONSTRACAO = (
     {"nome": "Raimundo Nonato", "email": "raimundo@example.com", "idade": 65,
-     "condicao_cronica": "Cardiopatia e hipertensão"},
-    {"nome": "Juscélio", "email": "juscelio@example.com"},
+     "condicao_cronica": "Cardiopatia e hipertensão", "gestante": False},
+    {"nome": "Juscélio", "email": "juscelio@example.com", "gestante": False},
 )
 
-# Nomes fictícios, exclusivamente para a demonstração.
+# Nomes fictícios com divisão explícita entre Urgência e Consultas Agendadas.
 MEDICOS_DEMONSTRACAO = (
-    {"nome": "Helena", "especialidade": "cardiologia", "capacidade_simultanea": 2, "ativo": True},
-    {"nome": "Ana", "especialidade": "oftalmologia", "capacidade_simultanea": 1, "ativo": True},
-    {"nome": "Carlos", "especialidade": "clinica_geral", "capacidade_simultanea": 3, "ativo": True},
-    {"nome": "Jurinaldo", "especialidade": "clinica_geral", "capacidade_simultanea": 3, "ativo": True},
-    
+    # Médicos exclusivos de Urgência
+    {
+        "nome": "Helena",
+        "especialidade": "cardiologia",
+        "capacidade_simultanea": 2,
+        "tipo_atendimento": "urgencia",
+        "ativo": True,
+    },
+    {
+        "nome": "Carlos",
+        "especialidade": "clinica_geral",
+        "capacidade_simultanea": 3,
+        "tipo_atendimento": "urgencia",
+        "ativo": True,
+    },
+    {
+        "nome": "Jurinaldo",
+        "especialidade": "clinica_geral",
+        "capacidade_simultanea": 3,
+        "tipo_atendimento": "urgencia",
+        "ativo": True,
+    },
+    # Médicos de Consultas Agendadas (com dias de atendimento e limite diário)
+    {
+        "nome": "Ana",
+        "especialidade": "oftalmologia",
+        "capacidade_simultanea": 1,
+        "tipo_atendimento": "agendamento",
+        "dias_atendimento": "segunda,quarta",
+        "limite_diario": 3,
+        "ativo": True,
+    },
+    {
+        "nome": "Mariana",
+        "especialidade": "clinica_geral",
+        "capacidade_simultanea": 2,
+        "tipo_atendimento": "agendamento",
+        "dias_atendimento": "segunda,quarta,sexta",
+        "limite_diario": 5,
+        "ativo": True,
+    },
+    {
+        "nome": "Roberto",
+        "especialidade": "cardiologia",
+        "capacidade_simultanea": 2,
+        "tipo_atendimento": "agendamento",
+        "dias_atendimento": "terca,quinta",
+        "limite_diario": 4,
+        "ativo": True,
+    },
 )
 
 
@@ -48,6 +93,14 @@ def popular_medicos(db: Session) -> int:
             if existente is None:
                 db.add(Medico(**dados))
                 inseridos += 1
+            else:
+                # Atualiza campos novos caso já exista de execuções anteriores
+                if "tipo_atendimento" in dados:
+                    existente.tipo_atendimento = dados["tipo_atendimento"]
+                if "dias_atendimento" in dados:
+                    existente.dias_atendimento = dados.get("dias_atendimento")
+                if "limite_diario" in dados:
+                    existente.limite_diario = dados.get("limite_diario")
         db.commit()
     except Exception:
         db.rollback()
