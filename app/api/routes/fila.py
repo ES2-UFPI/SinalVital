@@ -16,6 +16,20 @@ from app.domain.queue.motor_priorizacao import (
 router = APIRouter(prefix="/fila", tags=["fila"])
 
 
+def _consultar_cargas_medicos(db: Session) -> dict[int, int]:
+    """Retorna um dicionário {medico_id: quantidade} com a carga ativa de cada médico na fila."""
+    cargas_raw = (
+        db.query(ItemFila.medico_id, func.count(ItemFila.id))
+        .filter(
+            ItemFila.medico_id.isnot(None),
+            ItemFila.status.in_(["aguardando", "em_atendimento"]),
+        )
+        .group_by(ItemFila.medico_id)
+        .all()
+    )
+    return {m_id: count for m_id, count in cargas_raw if m_id is not None}
+
+
 @router.post(
     "",
     response_model=ItemFilaResponse,
@@ -65,16 +79,7 @@ def inserir_na_fila(dados: ItemFilaCreate, db: Session = Depends(get_db)):
         )
 
         # Cargas atuais por médico na fila ativa
-        cargas_raw = (
-            db.query(ItemFila.medico_id, func.count(ItemFila.id))
-            .filter(
-                ItemFila.medico_id.isnot(None),
-                ItemFila.status.in_(["aguardando", "em_atendimento"]),
-            )
-            .group_by(ItemFila.medico_id)
-            .all()
-        )
-        carga_atual = {m_id: count for m_id, count in cargas_raw if m_id is not None}
+        carga_atual = _consultar_cargas_medicos(db)
 
         medico_escolhido = MotorPriorizacao.escolher_medico(
             especialidade=especialidade,
@@ -156,16 +161,7 @@ def listar_fila(
         and i.triagem.especialidade
     ]
     if itens_sem_medico:
-        cargas_raw = (
-            db.query(ItemFila.medico_id, func.count(ItemFila.id))
-            .filter(
-                ItemFila.medico_id.isnot(None),
-                ItemFila.status.in_(["aguardando", "em_atendimento"]),
-            )
-            .group_by(ItemFila.medico_id)
-            .all()
-        )
-        carga_atual = {m_id: count for m_id, count in cargas_raw if m_id is not None}
+        carga_atual = _consultar_cargas_medicos(db)
 
         for item in itens_sem_medico:
             especialidade = item.triagem.especialidade
