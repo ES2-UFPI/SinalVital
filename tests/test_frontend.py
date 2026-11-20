@@ -7,6 +7,7 @@ from app.database.models import Medico
 PAGINAS_COM_FEEDBACK = (
     "/pages/cadastro.html",
     "/pages/triagem.html",
+    "/pages/agendamento.html",
     "/pages/medico.html",
     "/pages/historico.html",
     "/pages/fila.html",
@@ -252,5 +253,67 @@ def test_medico_html_exibe_espaco_do_medico_na_barra_lateral(client):
     html = client.get('/pages/medico.html').text
     assert 'ESPAÇO DO MÉDICO' in html
     assert 'ESPAÇO DO PACIENTE' not in html
+
+
+def test_agendamento_html_estrutura_e_acessibilidade(client):
+    """GET /pages/agendamento.html deve expor estrutura acessível, formulário e fila agendada separada."""
+    resp = client.get('/pages/agendamento.html')
+    assert resp.status_code == 200
+    html = resp.text
+
+    assert '<!doctype html>' in html.lower()
+    assert 'lang="pt-BR"' in html
+    assert 'data-page="agendamento"' in html
+    assert 'class="skip"' in html
+    assert '<main id="conteudo" tabindex="-1">' in html
+    assert 'id="font-down"' in html
+    assert 'id="font-up"' in html
+    assert 'id="contrast"' in html
+
+    # Controles do formulário
+    assert 'id="agendamento-form"' in html
+    assert 'id="paciente-id"' in html
+    assert 'id="select-especialidade"' in html
+    assert 'id="container-medicos"' in html
+    assert 'id="container-datas"' in html
+    assert 'id="grade-datas"' in html
+    assert 'id="motivo-agendamento"' in html
+    assert 'id="check-gestante"' in html
+
+    # Painéis de feedback e recomendação
+    assert 'id="painel-recomendacao-urgencia"' in html
+    assert 'id="confirmacao-agendamento"' in html
+
+    # Seção da Fila de Consultas Agendadas separada
+    assert 'id="fila-agendada-lista"' in html
+    assert 'id="btn-atualizar-fila-agendada"' in html
+    assert 'Fila de consultas agendadas' in html
+
+
+def test_agendamento_js_disponivel_e_integrado(client):
+    """GET /assets/js/agendamento.js deve estar disponível e conter lógica do agendamento."""
+    resp = client.get('/assets/js/agendamento.js')
+    assert resp.status_code == 200
+    js = resp.text
+
+    assert 'carregarMedicosDaEspecialidade' in js
+    assert 'carregarDatasDisponiveis' in js
+    assert 'dia-lotado' in js
+    assert 'exibirRecomendacaoUrgencia' in js
+    assert 'migrarParaFilaUrgencia' in js
+    assert 'carregarFilaAgendamentos' in js
+    assert 'api("/agendamentos' in js
+
+
+def test_triagem_contem_botao_ir_para_agendamento(client):
+    """O script app.js deve conter o botão 'Ir para Agendamento' no resultado da triagem."""
+    resp = client.get('/assets/js/app.js')
+    assert resp.status_code == 200
+    js = resp.text
+
+    assert 'btn-ir-agendamento' in js
+    assert 'Ir para Agendamento →' in js
+    assert '/pages/agendamento.html' in js
+
 
 
