@@ -22,37 +22,30 @@ MEDICOS_DEMONSTRACAO = (
 )
 
 
-def popular_pacientes(db: Session) -> int:
-    """Insere apenas pacientes ausentes, sem sobrescrever cadastros existentes."""
+def _popular_registros(db: Session, modelo, registros, campos_identificacao: tuple[str, ...]) -> int:
+    """Insere registros ausentes pela chave indicada, com commit ou rollback."""
     inseridos = 0
     try:
-        for dados in PACIENTES_DEMONSTRACAO:
-            if db.query(Paciente).filter(Paciente.email == dados["email"]).first() is None:
-                db.add(Paciente(**dados))
+        for dados in registros:
+            identificacao = {campo: dados[campo] for campo in campos_identificacao}
+            if db.query(modelo).filter_by(**identificacao).first() is None:
+                db.add(modelo(**dados))
                 inseridos += 1
         db.commit()
     except Exception:
         db.rollback()
         raise
     return inseridos
+
+
+def popular_pacientes(db: Session) -> int:
+    """Insere apenas pacientes ausentes, sem sobrescrever cadastros existentes."""
+    return _popular_registros(db, Paciente, PACIENTES_DEMONSTRACAO, ("email",))
 
 
 def popular_medicos(db: Session) -> int:
     """Identifica médicos da demo por nome e especialidade, preservando alterações."""
-    inseridos = 0
-    try:
-        for dados in MEDICOS_DEMONSTRACAO:
-            existente = db.query(Medico).filter_by(
-                nome=dados["nome"], especialidade=dados["especialidade"]
-            ).first()
-            if existente is None:
-                db.add(Medico(**dados))
-                inseridos += 1
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-    return inseridos
+    return _popular_registros(db, Medico, MEDICOS_DEMONSTRACAO, ("nome", "especialidade"))
 
 
 def main():
