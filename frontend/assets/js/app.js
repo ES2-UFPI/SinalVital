@@ -894,6 +894,35 @@ function validarAlocacaoPacienteParaMedico(pacienteId, medicoId) {
   return { permitido: true, item: todosItensDoPaciente[0], mensagem: "" };
 }
 
+function limparAnamneseAutomatica(inputAnamnese) {
+  if (
+    inputAnamnese &&
+    ultimoMotivoFilaPreenchido &&
+    inputAnamnese.value === ultimoMotivoFilaPreenchido
+  ) {
+    inputAnamnese.value = "";
+    ultimoMotivoFilaPreenchido = "";
+  }
+}
+
+function resetarFormularioClinicoConsulta({ limparPacienteId = false } = {}) {
+  if (limparPacienteId && $("paciente-id")) {
+    $("paciente-id").value = "";
+  }
+  if ($("anamnese")) $("anamnese").value = "";
+  if ($("diagnostico")) {
+    $("diagnostico").value = "";
+    $("diagnostico").removeAttribute("aria-invalid");
+  }
+  if ($("conduta")) {
+    $("conduta").value = "";
+    $("conduta").removeAttribute("aria-invalid");
+  }
+  ultimoMotivoFilaPreenchido = "";
+  atualizarResumoPacienteSelecionado({ id: null });
+  ocultarProntuarioEvolutivoMedico();
+}
+
 async function sincronizarPacientePorId(
   rawId,
   { veioDaFila = false, nomeFila = null, motivoFila = null } = {},
@@ -907,14 +936,7 @@ async function sincronizarPacientePorId(
   if (!/^[1-9]\d*$/.test(idLimpo)) {
     atualizarResumoPacienteSelecionado({ id: null });
     ocultarProntuarioEvolutivoMedico();
-    if (
-      inputAnamnese &&
-      ultimoMotivoFilaPreenchido &&
-      inputAnamnese.value === ultimoMotivoFilaPreenchido
-    ) {
-      inputAnamnese.value = "";
-      ultimoMotivoFilaPreenchido = "";
-    }
+    limparAnamneseAutomatica(inputAnamnese);
     return;
   }
 
@@ -931,14 +953,7 @@ async function sincronizarPacientePorId(
   }
 
   if (!validacao.permitido) {
-    if (
-      inputAnamnese &&
-      ultimoMotivoFilaPreenchido &&
-      inputAnamnese.value === ultimoMotivoFilaPreenchido
-    ) {
-      inputAnamnese.value = "";
-      ultimoMotivoFilaPreenchido = "";
-    }
+    limparAnamneseAutomatica(inputAnamnese);
     ocultarProntuarioEvolutivoMedico();
     atualizarResumoPacienteSelecionado({
       id: idLimpo,
@@ -1368,18 +1383,7 @@ $("prontuario-filtro-tipo")?.addEventListener("change", () => {
 });
 
 $("limpar-consulta")?.addEventListener("click", () => {
-  if ($("anamnese")) $("anamnese").value = "";
-  if ($("diagnostico")) {
-    $("diagnostico").value = "";
-    $("diagnostico").removeAttribute("aria-invalid");
-  }
-  if ($("conduta")) {
-    $("conduta").value = "";
-    $("conduta").removeAttribute("aria-invalid");
-  }
-  ultimoMotivoFilaPreenchido = "";
-  atualizarResumoPacienteSelecionado({ id: null });
-  ocultarProntuarioEvolutivoMedico();
+  resetarFormularioClinicoConsulta({ limparPacienteId: false });
   destacarCardDaFilaPorPaciente("");
   setFeedback($("consulta-feedback") || $("feedback"), "", "info");
 });
@@ -1580,12 +1584,7 @@ if (consultaForm) {
       }
 
       // Limpa os campos clínicos e o ID do paciente atendido (que saiu da fila)
-      if (inputPaciente) inputPaciente.value = "";
-      if (inputAnamnese) inputAnamnese.value = "";
-      if (inputDiagnostico) inputDiagnostico.value = "";
-      if (inputConduta) inputConduta.value = "";
-      atualizarResumoPacienteSelecionado({ id: null });
-      ocultarProntuarioEvolutivoMedico();
+      resetarFormularioClinicoConsulta({ limparPacienteId: true });
 
       await carregarFilaMedica();
     } catch (error) {
