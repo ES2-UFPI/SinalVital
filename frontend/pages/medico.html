@@ -102,6 +102,43 @@
 
                     <div id="paciente-selecionado-resumo" class="patient-banner" hidden aria-live="polite"></div>
 
+                    <!-- Prontuário Evolutivo e Histórico Clínico do Paciente (Issue #77 — [003-02]) -->
+                    <section id="prontuario-evolutivo" class="prontuario-evolutivo"
+                        aria-labelledby="prontuario-titulo" aria-live="polite" hidden>
+                        <div class="prontuario-header">
+                            <div>
+                                <p class="eyebrow">ACOMPANHAMENTO CLÍNICO</p>
+                                <h3 id="prontuario-titulo">Prontuário Evolutivo do Paciente</h3>
+                            </div>
+                            <a id="prontuario-link-historico" class="btn" href="/pages/historico.html">Abrir página de
+                                histórico →</a>
+                        </div>
+
+                        <div id="prontuario-dados-cadastrais" class="prontuario-meta-grid"></div>
+
+                        <div id="prontuario-motivo-atual" class="prontuario-motivo-box"></div>
+
+                        <div class="prontuario-historico-secao">
+                            <div class="prontuario-historico-header">
+                                <div>
+                                    <h4 id="prontuario-historico-titulo">Histórico de Consultas e Triagens</h4>
+                                    <p id="prontuario-historico-contador" class="field-help">Histórico unificado de
+                                        triagens e atendimentos anteriores (inclusive com outros médicos).</p>
+                                </div>
+                                <div class="prontuario-filtro-box">
+                                    <label for="prontuario-filtro-tipo">Filtrar histórico</label>
+                                    <select id="prontuario-filtro-tipo" name="prontuario_filtro_tipo">
+                                        <option value="">Todos os registros</option>
+                                        <option value="consulta">Apenas consultas médicas</option>
+                                        <option value="triagem">Apenas triagens</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <ol id="prontuario-historico-lista" class="timeline prontuario-timeline"
+                                aria-labelledby="prontuario-historico-titulo"></ol>
+                        </div>
+                    </section>
+
                     <label for="anamnese">Anamnese e observações iniciais <span>(opcional)</span></label>
                     <textarea id="anamnese" name="anamnese" rows="3" maxlength="5000"
                         placeholder="Ex.: Paciente relata início dos sintomas há 3 horas, sem alergias conhecidas."
