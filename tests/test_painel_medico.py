@@ -483,3 +483,156 @@ class TestFluxoEndToEndPainelMedico:
         )
         assert resp_outra_esp.status_code == 400
 
+
+# ---------------------------------------------------------------------------
+# 5. Prontuário Evolutivo e Histórico do Paciente no Painel Médico (Issue #77 — [003-02])
+# ---------------------------------------------------------------------------
+
+class TestProntuarioEvolutivoPainelMedico:
+
+    def test_medico_html_contem_bloco_prontuario_evolutivo_e_historico_do_paciente(
+        self, client
+    ):
+        """
+        medico.html deve conter a seção dedicada ao Prontuário Evolutivo do paciente
+        selecionado (#prontuario-evolutivo), com áreas para dados cadastrais (idade e
+        condições crônicas), motivo da consulta/urgência + justificativa da IA e a
+        linha do tempo do histórico (#prontuario-historico-lista) com filtro (#prontuario-filtro-tipo).
+        """
+        response = client.get("/pages/medico.html")
+        assert response.status_code == 200
+        html = response.text
+
+        assert 'id="prontuario-evolutivo"' in html
+        assert 'id="prontuario-dados-cadastrais"' in html
+        assert 'id="prontuario-motivo-atual"' in html
+        assert 'id="prontuario-historico-lista"' in html
+        assert 'id="prontuario-filtro-tipo"' in html
+        assert "Prontuário Evolutivo" in html
+
+    def test_app_js_carrega_e_renderiza_prontuario_evolutivo_e_historico_no_painel_medico(
+        self, client
+    ):
+        """
+        app.js deve buscar GET /pacientes/{id}/historico ao selecionar um paciente
+        no painel médico e renderizar idade, condições crônicas, motivo da consulta/urgência,
+        justificativa da IA e a lista completa de triagens e consultas anteriores.
+        """
+        response = client.get("/assets/js/app.js")
+        assert response.status_code == 200
+        js = response.text
+
+        assert "prontuario-evolutivo" in js
+        assert "prontuario-dados-cadastrais" in js
+        assert "prontuario-motivo-atual" in js
+        assert "prontuario-historico-lista" in js
+        assert "prontuario-filtro-tipo" in js
+        assert "carregarProntuarioEvolutivoMedico" in js
+        assert "condicao_cronica" in js
+
+    def test_base_css_estiliza_prontuario_evolutivo_com_suporte_a_alto_contraste(
+        self, client
+    ):
+        """base.css deve possuir estilos para o prontuário evolutivo no painel médico e modo alto contraste."""
+        response = client.get("/assets/css/base.css")
+        assert response.status_code == 200
+        css = response.text
+
+        assert ".prontuario-evolutivo" in css
+        assert ".prontuario-meta-grid" in css
+        assert "body.high-contrast .prontuario-evolutivo" in css
+
+    def test_fluxo_prontuario_evolutivo_exibe_idade_cronicas_e_historico_com_outros_medicos(
+        self, client, db_session
+    ):
+        """
+        Verifica que quando um paciente (com idade e condição crônica) já possui
+        triagens e consultas anteriores com outro médico (ex.: Dr. Carlos - Clínica Geral)
+        e passa por nova triagem sendo alocado para a Dra. Helena (Cardiologia),
+        o endpoint GET /pacientes/{id}/historico consumido pelo Prontuário Evolutivo
+        entrega ao painel da Dra. Helena:
+        - Nome, idade e condições crônicas do paciente;
+        - O relato original nas palavras do paciente e a justificativa da IA;
+        - O histórico completo contendo tanto a consulta anterior com o Dr. Carlos
+          quanto as triagens realizadas.
+        """
+        dr_carlos = Medico(
+            nome="Dr. Carlos",
+            especialidade="clinica_geral",
+            capacidade_simultanea=2,
+            ativo=True,
+        )
+        dra_helena = Medico(
+            nome="Dra. Helena",
+            especialidade="cardiologia",
+            capacidade_simultanea=2,
+            ativo=True,
+        )
+        db_session.add_all([dr_carlos, dra_helena])
+        db_session.commit()
+        db_session.refresh(dr_carlos)
+        db_session.refresh(dra_helena)
+
+        # 1. Cadastra paciente idoso com condições crônicas
+        pac_resp = client.post(
+            "/pacientes",
+            json={
+                "nome": "Raimundo Nonato",
+                "email": "raimundo.evolutivo@sinalvital.com",
+                "idade": 68,
+                "condicao_cronica": "Cardiopatia e hipertensão arterial",
+            },
+        )
+        assert pac_resp.status_code == 201
+        paciente_id = pac_resp.json()["id"]
+
+        # 2. Primeira passagem: triagem de clínica geral e consulta com Dr. Carlos
+        t1 = client.post(
+            f"/pacientes/{paciente_id}/triagens",
+            json={"relato": "Tosse seca e dor de garganta", "estrategia": "palavras_chave"},
+        ).json()
+        client.post("/fila", json={"triagem_id": t1["id"]})
+        c1_resp = client.post(
+            "/consultas",
+            json={
+                "paciente_id": paciente_id,
+                "medico_id": dr_carlos.id,
+                "anamnese": "Quadro gripal leve há 2 dias.",
+                "diagnostico": "Faringite viral aguda",
+                "conduta": "Hidratação e sintomáticos",
+            },
+        )
+        assert c1_resp.status_code == 201
+
+        # 3. Segunda passagem: sintoma cardiológico -> alocado para Dra. Helena
+        relato_cardio = "Estou com palpitações fortes e pressão alta desde cedo"
+        t2 = client.post(
+            f"/pacientes/{paciente_id}/triagens",
+            json={"relato": relato_cardio, "estrategia": "palavras_chave"},
+        ).json()
+        fila_item = client.post("/fila", json={"triagem_id": t2["id"]}).json()
+        assert fila_item["medico_id"] == dra_helena.id
+
+        # 4. Ao selecionar o paciente no painel médico, o frontend consulta GET /pacientes/{id}/historico
+        prontuario_resp = client.get(f"/pacientes/{paciente_id}/historico")
+        assert prontuario_resp.status_code == 200
+        prontuario = prontuario_resp.json()
+
+        assert prontuario["nome"] == "Raimundo Nonato"
+        assert prontuario["idade"] == 68
+        assert prontuario["condicao_cronica"] == "Cardiopatia e hipertensão arterial"
+
+        eventos = prontuario["eventos_historico"]
+        # Deve conter as 2 triagens + 1 consulta anterior com Dr. Carlos = 3 eventos
+        assert len(eventos) == 3
+        consultas_anteriores = [e for e in eventos if e["tipo_evento"] == "consulta"]
+        triagens_anteriores = [e for e in eventos if e["tipo_evento"] == "triagem"]
+        assert len(consultas_anteriores) == 1
+        assert "Dr. Carlos" in consultas_anteriores[0]["descricao"]
+        assert "Faringite viral aguda" in consultas_anteriores[0]["descricao"]
+
+        assert len(triagens_anteriores) == 2
+        assert any(relato_cardio in t["descricao"] for t in triagens_anteriores)
+        assert any(t["justificativa"] for t in triagens_anteriores)
+
+
