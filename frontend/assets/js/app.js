@@ -393,6 +393,21 @@ triagemForm?.addEventListener("submit", (event) => {
       again.href = `/pages/historico.html?paciente=${encodeURIComponent(pacienteId)}`;
       result.append(again);
 
+      const linkAgendamento = element(
+        "a",
+        "Ir para Agendamento →",
+        "button secondary btn",
+      );
+      linkAgendamento.id = "btn-ir-agendamento";
+      const paramsAgendamento = new URLSearchParams({
+        paciente: pacienteId,
+        triagem_id: String(data.id),
+        especialidade: data.especialidade || "clinica_geral",
+        motivo: data.justificativa || data.texto_sintomas || "",
+      });
+      linkAgendamento.href = `/pages/agendamento.html?${paramsAgendamento.toString()}`;
+      result.append(linkAgendamento);
+
       const linkMedico = element(
         "a",
         "Abrir painel médico →",
