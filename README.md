@@ -1,5 +1,27 @@
 # SinalVital
 
+## Experiência do paciente identificado — complemento da #75
+
+Após entrar com ID ou e-mail, a página inicial apresenta **Olá, [nome]! Como você
+está hoje?** com o nome retornado pelo login. O conteúdo é inserido como texto.
+
+O paciente identificado vê **Meus dados** no menu e na página inicial. O novo
+cadastro fica oculto; acessar `/pages/cadastro.html` com esse perfil redireciona
+para o início. Visitantes continuam podendo se cadastrar pela tela de login e
+pelos atalhos públicos. O perfil médico continua restrito ao painel clínico.
+
+`/pages/meus-dados.html` consulta `GET /pacientes/{paciente_id}` usando apenas o
+ID da sessão, ignorando identificadores na URL. Exibe nome, e-mail, idade e
+condição crônica; dados opcionais ausentes aparecem como não informados.
+O endpoint responde 200 com `PacienteResposta` ou 404 se o paciente não existir,
+sem carregar seu histórico. A página é somente de consulta; edição dos dados
+e cadastro administrativo de médicos permanecem como tarefas futuras.
+
+O acesso direto à API mantém o escopo de demonstração sem autenticação segura,
+conforme a seção de identificação abaixo. Testes da consulta cadastral estão em
+`tests/integration/test_meus_dados.py`; os fluxos de sessão e renderização são
+executados em JavaScript real por `tests/frontend/auth.test.cjs`.
+
 ## Identificação por perfil — #73, #74 e #75
 
 O protótipo possui entrada em http://127.0.0.1:8000/pages/login.html, reutilizando
@@ -22,10 +44,10 @@ Para descobrir os IDs de demonstração dos médicos, consulte `GET /medicos` no
 
 O perfil é armazenado em `sessionStorage` nesta aba. **Sair / Trocar Perfil**
 remove o perfil e o antigo identificador de paciente antes de voltar ao login.
-O cadastro de paciente permanece público; após cadastrar, entre usando seu novo
+O cadastro de paciente permanece público para visitantes; após cadastrar, entre usando seu novo
 ID ou e-mail. Acessos diretos a telas de atendimento sem perfil vão para o login.
 
-- Paciente: menu próprio, ID preenchido e somente leitura em triagem, agendamento
+- Paciente: menu próprio com Meus dados no lugar do novo cadastro, ID preenchido e somente leitura em triagem, agendamento
   e histórico. O perfil prevalece sobre IDs recebidos na URL. Fila e agendamentos
   exibem somente seus registros, mantendo a posição na lista original.
 - Médico: redirecionamento ao painel médico, profissional pré-selecionado e
@@ -48,7 +70,7 @@ Use somente dados fictícios; isso não é controle de acesso para produção.
   contra a branch #74 enquanto ela não entrar na `dev`; depois altere o destino
   para `dev` e atualize a branch. Nenhum merge automático na `dev` é necessário.
 - Testes de API e HTML: `tests/integration/test_auth.py`.
-- Dezesseis cenários de JavaScript real com Node.js: `tests/frontend/auth.test.cjs`.
+- Vinte e quatro cenários de JavaScript real com Node.js: `tests/frontend/auth.test.cjs`.
   O pytest executa esses cenários por `tests/test_auth_javascript.py`, sem pacotes
   npm adicionais. Requer Node.js 20 ou superior no PATH (disponível no runner
   Ubuntu do GitHub Actions e necessário também na execução local).
