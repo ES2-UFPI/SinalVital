@@ -74,7 +74,10 @@ function inicializarParametrosURL() {
 
   // Preenche ID do paciente da sessão ou da URL
   if (inputPacienteId) {
-    if (paramPaciente && /^[1-9]\d*$/.test(paramPaciente)) {
+    if (Auth.current()?.perfil === "paciente") {
+      inputPacienteId.value = Auth.patientId();
+      inputPacienteId.readOnly = true;
+    } else if (paramPaciente && /^[1-9]\d*$/.test(paramPaciente)) {
       inputPacienteId.value = paramPaciente;
     } else {
       const sessaoPaciente = sessionStorage.getItem("sv-patient");
@@ -260,7 +263,7 @@ async function submeterAgendamento(e) {
   if (painelUrgenciaEl) painelUrgenciaEl.hidden = true;
   if (confirmacaoAgendamentoEl) confirmacaoAgendamentoEl.hidden = true;
 
-  const pacienteIdVal = inputPacienteId ? inputPacienteId.value.trim() : "";
+  const pacienteIdVal = Auth.patientId(inputPacienteId ? inputPacienteId.value.trim() : "");
   if (!pacienteIdVal || !/^[1-9]\d*$/.test(pacienteIdVal)) {
     mostrarFeedback("Por favor, informe seu número de paciente.", "error");
     inputPacienteId?.focus();
@@ -433,7 +436,7 @@ async function carregarFilaAgendamentos() {
       card.className = "queue-card agendamento-card";
       card.setAttribute(
         "aria-label",
-        `Posição ${index + 1} da fila agendada: ${item.paciente_nome || "Paciente"} para ${formatarDataBR(item.data_agendamento)}`
+        `Posição ${item.posicao_global ?? index + 1} da fila agendada: ${item.paciente_nome || "Paciente"} para ${formatarDataBR(item.data_agendamento)}`
       );
 
       const topo = document.createElement("div");
@@ -441,7 +444,7 @@ async function carregarFilaAgendamentos() {
 
       const posEl = document.createElement("span");
       posEl.className = "fila-posicao agendamento-posicao";
-      posEl.textContent = String(index + 1);
+      posEl.textContent = String(item.posicao_global ?? index + 1);
 
       const nomeEl = document.createElement("h3");
       nomeEl.textContent = item.paciente_nome || `Paciente #${item.paciente_id}`;
