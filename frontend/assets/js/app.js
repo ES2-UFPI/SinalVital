@@ -70,7 +70,7 @@ const patientSession = {
 const queryPatient = new URLSearchParams(location.search).get("paciente");
 if ($("paciente-id")) {
   const isPainelMedico = document.body.dataset.page === "medico";
-  $("paciente-id").value = /^[1-9]\d*$/.test(queryPatient || "")
+  $("paciente-id").value = Auth.current()?.perfil === "paciente" ? Auth.patientId() : /^[1-9]\d*$/.test(queryPatient || "")
     ? queryPatient
     : isPainelMedico
       ? ""
@@ -158,7 +158,7 @@ async function api(path, options = {}) {
         "Não foi possível concluir agora. Tente novamente em instantes.",
       );
     }
-    return body;
+    return window.Auth ? Auth.adaptResponse(path, body) : body;
   } catch (error) {
     if (error.name === "AbortError")
       throw new Error(
@@ -310,7 +310,7 @@ triagemForm?.addEventListener("submit", (event) => {
   if (result) result.hidden = true;
 
   submit(form, "Analisando seu relato…", async () => {
-    const pacienteId = $("paciente-id").value.trim();
+    const pacienteId = Auth.patientId($("paciente-id").value.trim());
     const relato = $("relato").value.trim();
     if (relato.length < 5)
       throw new Error("Descreva seus sintomas com pelo menos 5 caracteres.");
@@ -485,7 +485,7 @@ $("historico-form")?.addEventListener("submit", (event) => {
   if ($("patient-summary")) $("patient-summary").hidden = true;
   if ($("history-empty")) $("history-empty").hidden = true;
   submit(form, "Carregando seu histórico…", async () => {
-    const id = $("paciente-id").value.trim();
+    const id = Auth.patientId($("paciente-id").value.trim());
     const data = await api(`/pacientes/${id}/historico`);
     patientSession.set(id);
     const summary = $("patient-summary");
@@ -806,6 +806,10 @@ async function carregarMedicos() {
 
       if (filtroAtual) {
         filtroFila.value = filtroAtual;
+      }
+      if (Auth.current()?.perfil === "medico") {
+        filtroFila.value = String(Auth.current().id);
+        filtroFila.disabled = true;
       }
     }
 

@@ -17,11 +17,11 @@ function browser(profile, page = 'historico') {
     querySelector() { return null; },
     querySelectorAll() { return links; },
   };
-  const context = {window:{}, document, location, sessionStorage:{
+  const context = {window:{}, document, location, AbortController, sessionStorage:{
     getItem:key=>data.get(key) || null, setItem:(key,value)=>data.set(key,value), removeItem:key=>data.delete(key),
   }, console, URL, setTimeout, clearTimeout};
   vm.runInNewContext(source, context);
-  return {auth:context.window.Auth, nodes, links, data, location, init:()=>init()};
+  return {auth:context.window.Auth, nodes, links, data, location, context, init:()=>init()};
 }
 const paciente = {perfil:'paciente', id:2, nome:'Raimundo'};
 const medico = {perfil:'medico', id:7, nome:'Helena'};
@@ -50,6 +50,7 @@ test('paciente ve somente seus agendamentos, inclusive com query string', () => 
   const result=browser(paciente).auth.adaptResponse('/agendamentos?status=agendado',[{paciente_id:1},{paciente_id:2}]);
   assert.equal(result.length,1);
   assert.equal(result[0].paciente_id,2);
+  assert.equal(result[0].posicao_global,2);
 });
 test('medico ve apenas seus pacientes e seu cadastro no painel', () => {
   const b=browser(medico,'medico');
@@ -75,4 +76,40 @@ test('visitante e direcionado ao login em telas de atendimento', () => {
 });
 test('novo cadastro permanece acessivel sem perfil', () => {
   const b=browser(null,'cadastro'); b.init(); assert.equal(b.location.target,undefined);
+});
+
+test('formulario de login salva perfil, limpa ID anterior e redireciona', async () => {
+  const b=browser(null,'login'); let submit;
+  const button={disabled:false}; const feedback={hidden:true, setAttribute(){}};
+  b.data.set('sv-patient','99');
+  b.nodes.set('login-feedback',feedback);
+  b.nodes.set('login-form',{
+    elements:{perfil:{value:'paciente'},identificador:{value:' raimundo@example.com '}},
+    querySelector:()=>button, addEventListener(event,cb){ submit=cb; },
+  });
+  b.context.fetch=async (path, options)=>{
+    assert.equal(path,'/auth/login');
+    assert.equal(JSON.parse(options.body).identificador,'raimundo@example.com');
+    return {ok:true,json:async()=>paciente};
+  };
+  b.init(); await submit({preventDefault(){}});
+  assert.equal(b.auth.current().id,2);
+  assert.equal(b.data.has('sv-patient'),false);
+  assert.equal(b.location.target,'/');
+  assert.equal(button.disabled,false);
+});
+
+test('login invalido apresenta erro e nao cria sessao', async () => {
+  const b=browser(null,'login'); let submit;
+  const button={disabled:false}; const feedback={hidden:true,setAttribute(){}};
+  b.nodes.set('login-feedback',feedback);
+  b.nodes.set('login-form',{
+    elements:{perfil:{value:'medico'},identificador:{value:'999'}},
+    querySelector:()=>button,addEventListener(event,cb){submit=cb;},
+  });
+  b.context.fetch=async()=>({ok:false,json:async()=>({detail:'Perfil não encontrado.'})});
+  b.init(); await submit({preventDefault(){}});
+  assert.equal(b.auth.current(),null);
+  assert.equal(feedback.textContent,'Perfil não encontrado.');
+  assert.equal(button.disabled,false);
 });
