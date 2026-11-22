@@ -635,4 +635,61 @@ class TestProntuarioEvolutivoPainelMedico:
         assert any(relato_cardio in t["descricao"] for t in triagens_anteriores)
         assert any(t["justificativa"] for t in triagens_anteriores)
 
+    def test_item_fila_response_expoe_idade_condicao_cronica_relato_e_justificativa_ia(
+        self, client, db_session
+    ):
+        """
+        Issue #76 — [003-01]: GET /fila e POST /fila (ItemFilaResponse) devem expor
+        diretamente para o Painel Médico: paciente_idade, paciente_condicao_cronica,
+        relato_paciente (motivo original do paciente) e justificativa_ia, preservando
+        todos os campos atuais.
+        """
+        dra_helena = Medico(
+            nome="Dra. Helena",
+            especialidade="cardiologia",
+            capacidade_simultanea=2,
+            ativo=True,
+        )
+        db_session.add(dra_helena)
+        db_session.commit()
+        db_session.refresh(dra_helena)
+
+        pac = client.post(
+            "/pacientes",
+            json={
+                "nome": "Raimundo Nonato",
+                "email": "raimundo.76@sinalvital.com",
+                "idade": 68,
+                "condicao_cronica": "Cardiopatia e hipertensão",
+            },
+        ).json()
+
+        relato_literal = "Estou com aperto no peito e palpitações desde cedo"
+        triagem = client.post(
+            f"/pacientes/{pac['id']}/triagens",
+            json={"relato": relato_literal, "estrategia": "palavras_chave"},
+        ).json()
+
+        post_fila_resp = client.post("/fila", json={"triagem_id": triagem["id"]})
+        assert post_fila_resp.status_code == 201
+        item_post = post_fila_resp.json()
+
+        assert item_post["paciente_idade"] == 68
+        assert item_post["paciente_condicao_cronica"] == "Cardiopatia e hipertensão"
+        assert item_post["relato_paciente"] == relato_literal
+        assert item_post["justificativa_ia"] == triagem["justificativa"]
+        # Campos anteriores preservados
+        assert item_post["paciente_nome"] == "Raimundo Nonato"
+        assert item_post["motivo"] is not None
+        assert item_post["medico_alocado"] == "Dra. Helena"
+
+        lista_fila = client.get("/fila?status=aguardando").json()
+        assert len(lista_fila) == 1
+        item_get = lista_fila[0]
+        assert item_get["paciente_idade"] == 68
+        assert item_get["paciente_condicao_cronica"] == "Cardiopatia e hipertensão"
+        assert item_get["relato_paciente"] == relato_literal
+        assert item_get["justificativa_ia"] == triagem["justificativa"]
+
+
 
