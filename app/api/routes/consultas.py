@@ -18,26 +18,22 @@ from app.database.models import (
 router = APIRouter(prefix="/consultas", tags=["consultas"])
 
 
-@router.post(
-    "",
-    response_model=ConsultaResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-def criar_consulta(dados: ConsultaCreate, db: Session = Depends(get_db)):
-    paciente = db.get(Paciente, dados.paciente_id)
-    if paciente is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Paciente com id={dados.paciente_id} não encontrado.",
-        )
-    medico = db.get(Medico, dados.medico_id)
-    if medico is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Médico com id={dados.medico_id} não encontrado.",
-        )
+def _encerrar_vinculo_ativo(registros_ativos: list, medico_id: int) -> None:
+    """Marca como 'atendido' o primeiro vínculo ativo alocado ao médico informado."""
+    for registro in registros_ativos:
+        if registro.medico_id == medico_id:
+            registro.status = "atendido"
+            registro.atualizado_em = datetime.now(timezone.utc)
+            break
 
-    # Verifica registros do paciente na Fila de Urgência (ItemFila) e na Fila de Consultas Agendadas (Agendamento)
+
+def _validar_e_encerrar_alocacao_paciente(
+    db: Session, paciente: Paciente, medico: Medico
+) -> None:
+    """
+    Valida se o paciente passou por triagem/fila ou agendamento e se está alocado
+    ao médico/especialidade informado, encerrando o vínculo ativo correspondente.
+    """
     total_itens_fila = db.query(ItemFila).count()
     total_agendamentos = db.query(Agendamento).count()
     itens_paciente_fila = (
@@ -64,7 +60,6 @@ def criar_consulta(dados: ConsultaCreate, db: Session = Depends(get_db)):
             ),
         )
 
-    # 1. Caso o paciente possua item na Fila de Urgência ou na Fila de Consultas Agendadas
     if itens_paciente_fila or agendamentos_paciente:
         itens_ativos_paciente = [
             item
@@ -77,16 +72,15 @@ def criar_consulta(dados: ConsultaCreate, db: Session = Depends(get_db)):
             if ag.status in ("agendado", "em_atendimento")
         ]
 
-        # Se há atendimentos ativos pendentes, valida a alocação sobre os ativos;
-        # caso contrário, valida sobre o histórico de alocações do paciente.
+        possui_vinculo_ativo = bool(
+            itens_ativos_paciente or agendamentos_ativos_paciente
+        )
         base_fila = (
-            itens_ativos_paciente
-            if (itens_ativos_paciente or agendamentos_ativos_paciente)
-            else itens_paciente_fila
+            itens_ativos_paciente if possui_vinculo_ativo else itens_paciente_fila
         )
         base_agendamentos = (
             agendamentos_ativos_paciente
-            if (itens_ativos_paciente or agendamentos_ativos_paciente)
+            if possui_vinculo_ativo
             else agendamentos_paciente
         )
 
@@ -106,27 +100,11 @@ def criar_consulta(dados: ConsultaCreate, db: Session = Depends(get_db)):
                 ),
             )
 
-        # Se atendido por médico alocado na Fila de Urgência, encerra o item ativo e libera a vaga simultânea
         if alocado_urgencia_medico:
-            itens_ativos_medico = [
-                item
-                for item in itens_ativos_paciente
-                if item.medico_id == medico.id
-            ]
-            if itens_ativos_medico:
-                itens_ativos_medico[0].status = "atendido"
-                itens_ativos_medico[0].atualizado_em = datetime.now(timezone.utc)
+            _encerrar_vinculo_ativo(itens_ativos_paciente, medico.id)
 
-        # Se atendido por médico alocado na Fila de Consultas Agendadas, encerra o agendamento ativo
         if alocado_agendamento_medico:
-            agendamentos_ativos_medico = [
-                ag
-                for ag in agendamentos_ativos_paciente
-                if ag.medico_id == medico.id
-            ]
-            if agendamentos_ativos_medico:
-                agendamentos_ativos_medico[0].status = "atendido"
-                agendamentos_ativos_medico[0].atualizado_em = datetime.now(timezone.utc)
+            _encerrar_vinculo_ativo(agendamentos_ativos_paciente, medico.id)
     elif triagens_paciente:
         especialidade_compativel = any(
             (t.especialidade or "").lower() == (medico.especialidade or "").lower()
@@ -140,6 +118,28 @@ def criar_consulta(dados: ConsultaCreate, db: Session = Depends(get_db)):
                     f"para a especialidade {medico.especialidade} na triagem."
                 ),
             )
+
+
+@router.post(
+    "",
+    response_model=ConsultaResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def criar_consulta(dados: ConsultaCreate, db: Session = Depends(get_db)):
+    paciente = db.get(Paciente, dados.paciente_id)
+    if paciente is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Paciente com id={dados.paciente_id} não encontrado.",
+        )
+    medico = db.get(Medico, dados.medico_id)
+    if medico is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Médico com id={dados.medico_id} não encontrado.",
+        )
+
+    _validar_e_encerrar_alocacao_paciente(db, paciente, medico)
 
     nova_consulta = Consulta(**dados.model_dump())
     evento_historico_consulta = EventoHistorico(
