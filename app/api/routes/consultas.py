@@ -66,11 +66,35 @@ def criar_consulta(dados: ConsultaCreate, db: Session = Depends(get_db)):
 
     # 1. Caso o paciente possua item na Fila de Urgência ou na Fila de Consultas Agendadas
     if itens_paciente_fila or agendamentos_paciente:
+        itens_ativos_paciente = [
+            item
+            for item in itens_paciente_fila
+            if item.status in ("aguardando", "em_atendimento")
+        ]
+        agendamentos_ativos_paciente = [
+            ag
+            for ag in agendamentos_paciente
+            if ag.status in ("agendado", "em_atendimento")
+        ]
+
+        # Se há atendimentos ativos pendentes, valida a alocação sobre os ativos;
+        # caso contrário, valida sobre o histórico de alocações do paciente.
+        base_fila = (
+            itens_ativos_paciente
+            if (itens_ativos_paciente or agendamentos_ativos_paciente)
+            else itens_paciente_fila
+        )
+        base_agendamentos = (
+            agendamentos_ativos_paciente
+            if (itens_ativos_paciente or agendamentos_ativos_paciente)
+            else agendamentos_paciente
+        )
+
         alocado_urgencia_medico = any(
-            item.medico_id == medico.id for item in itens_paciente_fila
+            item.medico_id == medico.id for item in base_fila
         )
         alocado_agendamento_medico = any(
-            ag.medico_id == medico.id for ag in agendamentos_paciente
+            ag.medico_id == medico.id for ag in base_agendamentos
         )
 
         if not alocado_urgencia_medico and not alocado_agendamento_medico:
@@ -86,9 +110,8 @@ def criar_consulta(dados: ConsultaCreate, db: Session = Depends(get_db)):
         if alocado_urgencia_medico:
             itens_ativos_medico = [
                 item
-                for item in itens_paciente_fila
+                for item in itens_ativos_paciente
                 if item.medico_id == medico.id
-                and item.status in ("aguardando", "em_atendimento")
             ]
             if itens_ativos_medico:
                 itens_ativos_medico[0].status = "atendido"
@@ -98,9 +121,8 @@ def criar_consulta(dados: ConsultaCreate, db: Session = Depends(get_db)):
         if alocado_agendamento_medico:
             agendamentos_ativos_medico = [
                 ag
-                for ag in agendamentos_paciente
+                for ag in agendamentos_ativos_paciente
                 if ag.medico_id == medico.id
-                and ag.status in ("agendado", "em_atendimento")
             ]
             if agendamentos_ativos_medico:
                 agendamentos_ativos_medico[0].status = "atendido"

@@ -998,6 +998,7 @@ function selecionarPacienteDaFila({ pacienteId, medicoId, pacienteNome, motivo }
       selectMedico.value = String(medicoId);
       selectMedico.removeAttribute("aria-invalid");
     }
+    sincronizarModalidadeComMedicoSelecionado(medicoId);
   }
 
   sincronizarPacientePorId(pacienteId, {
@@ -1325,7 +1326,21 @@ $("atualizar-fila")?.addEventListener("click", () => {
   carregarFilaMedica();
 });
 
-$("filtro-modalidade-fila")?.addEventListener("change", () => {
+$("filtro-modalidade-fila")?.addEventListener("change", (e) => {
+  const novaModalidade = e.currentTarget.value;
+  const filtroMedico = $("filtro-medico-fila");
+  if (
+    filtroMedico &&
+    filtroMedico.value &&
+    filtroMedico.value !== "sem_medico" &&
+    medicosAgendamentoIds.size > 0
+  ) {
+    const isMedicoAg = medicosAgendamentoIds.has(Number(filtroMedico.value));
+    const modalidadeMedicoFiltro = isMedicoAg ? "agendamento" : "urgencia";
+    if (modalidadeMedicoFiltro !== novaModalidade) {
+      filtroMedico.value = "";
+    }
+  }
   renderizarFilaMedica();
 });
 
