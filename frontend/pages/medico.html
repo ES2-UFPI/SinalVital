@@ -63,13 +63,23 @@
                     </div>
 
                     <div class="queue-filter">
+                        <label for="filtro-modalidade-fila">Modalidade da fila</label>
+                        <select id="filtro-modalidade-fila" name="filtro_modalidade_fila"
+                            aria-describedby="filtro-modalidade-fila-help">
+                            <option value="urgencia">Fila de Atendimento de Urgência (Plantão)</option>
+                            <option value="agendamento">Fila de Consultas Agendadas (Prioridade Fixa)</option>
+                        </select>
+                        <p id="filtro-modalidade-fila-help" class="field-help">Alterne entre a Fila de Urgência e a Fila
+                            de Consultas Agendadas (ou selecione um médico abaixo para carregar automaticamente a fila
+                            da modalidade dele).</p>
+
                         <label for="filtro-medico-fila">Filtrar fila por médico responsável</label>
                         <select id="filtro-medico-fila" name="filtro_medico_fila"
                             aria-describedby="filtro-medico-fila-help">
                             <option value="">Todos os pacientes aguardando na fila</option>
                         </select>
-                        <p id="filtro-medico-fila-help" class="field-help">Selecione a Dra. Helena ou outro médico da
-                            equipe para filtrar a fila, ou visualize todos os pacientes aguardando.</p>
+                        <p id="filtro-medico-fila-help" class="field-help">Selecione a Dra. Helena (Urgência), Dr.
+                            Roberto (Consulta Agendada) ou outro médico da equipe para filtrar a fila.</p>
                     </div>
 
                     <div id="fila-medica" class="queue-list" aria-live="polite">

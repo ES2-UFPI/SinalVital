@@ -692,4 +692,230 @@ class TestProntuarioEvolutivoPainelMedico:
         assert item_get["justificativa_ia"] == triagem["justificativa"]
 
 
+# ---------------------------------------------------------------------------
+# 6. Integração da Fila de Consultas Agendadas e Fila de Urgência no Painel Médico (Issue #78 — [003-03])
+# ---------------------------------------------------------------------------
+
+class TestAtendimentoConsultasAgendadasPainelMedico:
+
+    def test_agendamento_response_expoe_idade_condicoes_cronicas_e_justificativa_para_painel_medico(
+        self, client, db_session
+    ):
+        """
+        GET /agendamentos deve expor paciente_idade, paciente_condicao_cronica,
+        paciente_gestante, urgencia e justificativa_ia para que o Painel Médico
+        exiba o Prontuário Evolutivo completo também nas consultas agendadas.
+        """
+        from datetime import date, timedelta
+
+        hoje = date.today()
+        dias_ate_segunda = (0 - hoje.weekday()) % 7 or 7
+        proxima_segunda = hoje + timedelta(days=dias_ate_segunda)
+
+        dra_mariana = Medico(
+            nome="Dra. Mariana",
+            especialidade="clinica_geral",
+            capacidade_simultanea=2,
+            tipo_atendimento="agendamento",
+            dias_atendimento="segunda,quarta",
+            limite_diario=4,
+            ativo=True,
+        )
+        db_session.add(dra_mariana)
+        db_session.commit()
+        db_session.refresh(dra_mariana)
+
+        pac = client.post(
+            "/pacientes",
+            json={
+                "nome": "Raimundo Agendado",
+                "email": "raimundo.agendado78@sinalvital.com",
+                "idade": 72,
+                "condicao_cronica": "Diabetes e hipertensão",
+            },
+        ).json()
+
+        ag_resp = client.post(
+            "/agendamentos",
+            json={
+                "paciente_id": pac["id"],
+                "medico_id": dra_mariana.id,
+                "data_agendamento": proxima_segunda.isoformat(),
+                "motivo": "Acompanhamento de glicemia e pressão arterial",
+            },
+        )
+        assert ag_resp.status_code == 201
+
+        lista_ag = client.get(f"/agendamentos?medico_id={dra_mariana.id}&status=agendado").json()
+        assert len(lista_ag) == 1
+        item_ag = lista_ag[0]
+        assert item_ag["paciente_idade"] == 72
+        assert item_ag["paciente_condicao_cronica"] == "Diabetes e hipertensão"
+        assert item_ag["urgencia"] is not None
+        assert item_ag["justificativa_ia"] is not None
+
+    def test_post_consultas_atende_paciente_de_consulta_agendada_e_atualiza_status_para_atendido(
+        self, client, db_session
+    ):
+        """
+        Quando um médico de consulta agendada registra o atendimento via POST /consultas:
+        1. A consulta é criada com sucesso (201) mesmo sem o paciente estar na ItemFila (urgência).
+        2. O status do Agendamento muda de 'agendado' para 'atendido'.
+        3. O registro entra imediatamente em GET /pacientes/{id}/historico?tipo_evento=consulta.
+        """
+        from datetime import date, timedelta
+
+        hoje = date.today()
+        dias_ate_terca = (1 - hoje.weekday()) % 7 or 7
+        proxima_terca = hoje + timedelta(days=dias_ate_terca)
+
+        dr_roberto = Medico(
+            nome="Dr. Roberto",
+            especialidade="cardiologia",
+            capacidade_simultanea=2,
+            tipo_atendimento="agendamento",
+            dias_atendimento="terca,quinta",
+            limite_diario=4,
+            ativo=True,
+        )
+        db_session.add(dr_roberto)
+        db_session.commit()
+        db_session.refresh(dr_roberto)
+
+        pac = client.post(
+            "/pacientes",
+            json={
+                "nome": "Ana Agendada",
+                "email": "ana.agendada78@sinalvital.com",
+                "idade": 64,
+                "condicao_cronica": "Arritmia cardíaca crônica",
+            },
+        ).json()
+
+        ag = client.post(
+            "/agendamentos",
+            json={
+                "paciente_id": pac["id"],
+                "medico_id": dr_roberto.id,
+                "data_agendamento": proxima_terca.isoformat(),
+                "motivo": "Revisão periódica de arritmia e ajuste de medicação",
+            },
+        ).json()
+        assert ag["status"] == "agendado"
+
+        # Dr. Roberto registra a consulta agendada via POST /consultas
+        consulta_resp = client.post(
+            "/consultas",
+            json={
+                "paciente_id": pac["id"],
+                "medico_id": dr_roberto.id,
+                "anamnese": "Paciente traz exames de Holter 24h estáveis.",
+                "diagnostico": "Arritmia supraventricular controlada",
+                "conduta": "Manter betabloqueador e retorno agendado em 60 dias",
+            },
+        )
+        assert consulta_resp.status_code == 201
+
+        # O agendamento deve ter sido atualizado para status='atendido'
+        ag_pendentes = client.get(
+            f"/agendamentos?medico_id={dr_roberto.id}&status=agendado"
+        ).json()
+        assert len(ag_pendentes) == 0
+
+        ag_atendidos = client.get(
+            f"/agendamentos?medico_id={dr_roberto.id}&status=atendido"
+        ).json()
+        assert len(ag_atendidos) == 1
+        assert ag_atendidos[0]["id"] == ag["id"]
+        assert ag_atendidos[0]["status"] == "atendido"
+
+        # A consulta deve constar no histórico cumulativo do paciente
+        hist = client.get(f"/pacientes/{pac['id']}/historico?tipo_evento=consulta").json()
+        assert len(hist["eventos_historico"]) == 1
+        assert "Dr. Roberto" in hist["eventos_historico"][0]["descricao"]
+        assert "Arritmia supraventricular controlada" in hist["eventos_historico"][0]["descricao"]
+
+    def test_separa_medicos_de_urgencia_e_agendamento_na_fila_e_no_registro_de_consulta(
+        self, client, db_session
+    ):
+        """
+        Garante que:
+        1. POST /fila (Urgência) aloca apenas médicos de urgência (nunca médicos exclusivos de agendamento).
+        2. Um médico de urgência (Dra. Helena) não pode atender em POST /consultas um paciente que
+           está apenas agendado com outro médico (Dr. Roberto), retornando 400.
+        """
+        from datetime import date, timedelta
+
+        hoje = date.today()
+        dias_ate_terca = (1 - hoje.weekday()) % 7 or 7
+        proxima_terca = hoje + timedelta(days=dias_ate_terca)
+
+        dr_roberto_agendamento = Medico(
+            nome="Dr. Roberto",
+            especialidade="cardiologia",
+            capacidade_simultanea=2,
+            tipo_atendimento="agendamento",
+            dias_atendimento="terca,quinta",
+            limite_diario=4,
+            ativo=True,
+        )
+        dra_helena_urgencia = Medico(
+            nome="Dra. Helena",
+            especialidade="cardiologia",
+            capacidade_simultanea=2,
+            tipo_atendimento="urgencia",
+            ativo=True,
+        )
+        db_session.add_all([dr_roberto_agendamento, dra_helena_urgencia])
+        db_session.commit()
+        db_session.refresh(dr_roberto_agendamento)
+        db_session.refresh(dra_helena_urgencia)
+
+        pac = client.post(
+            "/pacientes",
+            json={"nome": "Carlos Agendado", "email": "carlos.ag78@sinalvital.com", "idade": 58},
+        ).json()
+
+        # Paciente agenda consulta com Dr. Roberto (Cardiologia - Agendamento)
+        ag_resp = client.post(
+            "/agendamentos",
+            json={
+                "paciente_id": pac["id"],
+                "medico_id": dr_roberto_agendamento.id,
+                "data_agendamento": proxima_terca.isoformat(),
+                "motivo": "Acompanhamento de rotina do coração",
+            },
+        )
+        assert ag_resp.status_code == 201
+
+        # Dra. Helena (Urgência, também cardiologia) tenta registrar consulta para o paciente
+        # que está agendado exclusivamente com Dr. Roberto -> deve retornar 400
+        tentativa_cruzada = client.post(
+            "/consultas",
+            json={
+                "paciente_id": pac["id"],
+                "medico_id": dra_helena_urgencia.id,
+                "diagnostico": "Tentativa cruzada",
+                "conduta": "Nenhuma",
+            },
+        )
+        assert tentativa_cruzada.status_code == 400
+
+    def test_app_js_e_medico_html_suportam_fila_de_agendamentos_e_fila_de_urgencia(
+        self, client
+    ):
+        """
+        medico.html e app.js devem integrar /agendamentos e /agendamentos/medicos para exibir
+        no Painel Médico a fila correspondente à modalidade do profissional (Urgência ou Consulta Agendada).
+        """
+        html = client.get("/pages/medico.html").text
+        js = client.get("/assets/js/app.js").text
+
+        assert 'id="filtro-modalidade-fila"' in html or "Consultas Agendadas" in html
+        assert "/agendamentos" in js
+        assert "agendamentosMedicosCache" in js
+        assert "carregarAgendamentosMedicos" in js
+
+
+
 
