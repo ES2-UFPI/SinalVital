@@ -163,3 +163,43 @@ test('login invalido apresenta erro e nao cria sessao', async () => {
   assert.equal(feedback.textContent,'Perfil não encontrado.');
   assert.equal(button.disabled,false);
 });
+
+function dadosPage(profile = paciente) {
+  const b=browser(profile,'dados');
+  const feedback={textContent:'',setAttribute(key,value){this[key]=value;}};
+  const painel={setAttribute(key,value){this[key]=value;},removeAttribute(key){delete this[key];},
+    replaceChildren(...nodes){this.children=nodes;}};
+  b.nodes.set('dados-feedback',feedback); b.nodes.set('dados-paciente',painel);
+  b.context.Auth=b.auth;
+  b.context.document.createElement=tag=>({tag,children:[],append(...nodes){this.children.push(...nodes);}});
+  b.context.location.search='?paciente=999';
+  return {...b,feedback,painel,render:()=>vm.runInNewContext(
+    fs.readFileSync('frontend/assets/js/meus-dados.js','utf8'),b.context)};
+}
+test('meus dados consulta somente ID da sessao e renderiza conteudo como texto', async () => {
+  const b=dadosPage();
+  b.context.api=async path=>{
+    assert.equal(path,'/pacientes/2');
+    return {id:2,nome:'Nome <seguro>',email:'exemplo@example.com',idade:0,condicao_cronica:null};
+  };
+  await b.render();
+  const campos=b.painel.children[0].children;
+  assert.equal(campos[1].children[1].textContent,'Nome <seguro>');
+  assert.equal(campos[3].children[1].textContent,'0 anos');
+  assert.equal(campos[4].children[1].textContent,'Não informada');
+  assert.equal(b.painel['aria-busy'],undefined);
+});
+test('meus dados informa falha da API sem mostrar cadastro de outro paciente', async () => {
+  const b=dadosPage();
+  b.context.api=async()=>{throw new Error('Paciente não encontrado.');};
+  await b.render();
+  assert.equal(b.feedback.role,'alert');
+  assert.equal(b.feedback.textContent,'Paciente não encontrado.');
+  assert.equal(b.painel.children,undefined);
+});
+test('meus dados nao consulta API para medico ou visitante', async () => {
+  for (const perfil of [null,medico]) {
+    const b=dadosPage(perfil); b.context.api=async()=>assert.fail('consulta indevida');
+    await b.render(); assert.equal(b.painel.children,undefined);
+  }
+});
