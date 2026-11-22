@@ -1126,17 +1126,37 @@ function renderizarFilaMedica(itens) {
       `${posicao} · ${nomePaciente} (#${item.paciente_id})`,
     );
 
+    const partesPerfil = [];
+    if (item.paciente_idade != null) {
+      partesPerfil.push(`Idade: ${item.paciente_idade} anos`);
+    }
+    if (item.paciente_condicao_cronica) {
+      partesPerfil.push(`Condições crônicas: ${item.paciente_condicao_cronica}`);
+    }
+
     const meta = element(
       "p",
-      `Especialidade: ${formatarEspecialidade(item.especialidade)} · Médico alocado: ${medicoAlocado}`,
+      `Especialidade: ${formatarEspecialidade(item.especialidade)} · Médico alocado: ${medicoAlocado}${partesPerfil.length ? ` · ${partesPerfil.join(" · ")}` : ""}`,
       "queue-meta",
     );
 
+    const relatoCardTexto = item.relato_paciente || motivoTexto;
     const motivoEl = element(
       "p",
-      `Motivo da triagem: ${motivoTexto}`,
+      `Motivo / relato do paciente: ${relatoCardTexto}`,
       "queue-motivo",
     );
+
+    const elementosCard = [header, titulo, meta, motivoEl];
+    if (item.justificativa_ia && item.justificativa_ia !== relatoCardTexto) {
+      elementosCard.push(
+        element(
+          "p",
+          `Justificativa da IA: ${item.justificativa_ia}`,
+          "queue-meta",
+        ),
+      );
+    }
 
     const btnAtender = element(
       "button",
@@ -1147,17 +1167,18 @@ function renderizarFilaMedica(itens) {
     btnAtender.dataset.pacienteId = String(item.paciente_id);
     btnAtender.dataset.medicoId = item.medico_id != null ? String(item.medico_id) : "";
     btnAtender.dataset.pacienteNome = nomePaciente;
-    btnAtender.dataset.motivo = motivoTexto;
+    btnAtender.dataset.motivo = relatoCardTexto;
     btnAtender.addEventListener("click", () => {
       selecionarPacienteDaFila({
         pacienteId: item.paciente_id,
         medicoId: item.medico_id,
         pacienteNome: nomePaciente,
-        motivo: motivoTexto,
+        motivo: relatoCardTexto,
       });
     });
 
-    card.append(header, titulo, meta, motivoEl, btnAtender);
+    elementosCard.push(btnAtender);
+    card.append(...elementosCard);
     container.append(card);
   });
 
