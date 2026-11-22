@@ -27,7 +27,7 @@ window.Auth = (() => {
     const perfil = current();
     if (!perfil || !Array.isArray(body)) return body;
     const route = path.split("?")[0];
-    if (route === "/medicos" && perfil.perfil === "medico") {
+    if (["/medicos", "/agendamentos/medicos"].includes(route) && perfil.perfil === "medico") {
       return body.filter(medico => medico.id === perfil.id);
     }
     if (route === "/fila") {
@@ -36,6 +36,9 @@ window.Auth = (() => {
       return body.map(item => ({...item,
         posicao_global: (item.status || "aguardando") === "aguardando" ? ++posicao : null,
       })).filter(item => item.paciente_id === perfil.id);
+    }
+    if (route === "/agendamentos" && perfil.perfil === "medico") {
+      return body.filter(item => item.medico_id === perfil.id);
     }
     if (route === "/agendamentos" && perfil.perfil === "paciente") {
       return body.map((item, index) => ({...item, posicao_global: index + 1}))
@@ -70,6 +73,8 @@ window.Auth = (() => {
       if (input) { input.value = String(perfil.id); input.readOnly = true; }
     }
     if (perfil?.perfil === "medico") {
+      const historicoPaciente = document.getElementById("prontuario-link-historico");
+      if (historicoPaciente) historicoPaciente.hidden = true;
       for (const id of ["medico-id", "filtro-medico-fila"]) {
         const select = document.getElementById(id);
         if (select) select.disabled = true;

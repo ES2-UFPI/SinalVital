@@ -84,3 +84,38 @@ def test_comando_seed_inclui_pacientes_e_medicos(db_session, monkeypatch, capsys
     assert db_session.query(Paciente).count() == len(seed.PACIENTES_DEMONSTRACAO)
     assert db_session.query(Medico).count() == len(seed.MEDICOS_DEMONSTRACAO)
     assert "médico(s)" in capsys.readouterr().out
+
+
+def test_seed_atualiza_agendamento_sem_sobrescrever_capacidade_e_ativo(db_session):
+    from app.database.models import Medico
+    from app.seed import popular_medicos
+
+    ana = Medico(nome="Ana", especialidade="oftalmologia", tipo_atendimento="urgencia",
+                 dias_atendimento="sexta", limite_diario=9,
+                 capacidade_simultanea=7, ativo=False)
+    db_session.add(ana)
+    db_session.commit()
+    popular_medicos(db_session)
+    db_session.refresh(ana)
+    assert ana.tipo_atendimento == "agendamento"
+    assert ana.dias_atendimento == "segunda,quarta"
+    assert ana.limite_diario == 3
+    assert ana.capacidade_simultanea == 7
+    assert ana.ativo is False
+    assert popular_medicos(db_session) == 0
+
+
+def test_seed_preserva_campos_de_agenda_ausentes_nos_dados(db_session):
+    from app.database.models import Medico
+    from app.seed import popular_medicos
+
+    helena = Medico(nome="Helena", especialidade="cardiologia", tipo_atendimento="ambos",
+                    dias_atendimento="segunda", limite_diario=8,
+                    capacidade_simultanea=2, ativo=True)
+    db_session.add(helena)
+    db_session.commit()
+    popular_medicos(db_session)
+    db_session.refresh(helena)
+    assert helena.tipo_atendimento == "urgencia"
+    assert helena.dias_atendimento == "segunda"
+    assert helena.limite_diario == 8

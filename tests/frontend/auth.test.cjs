@@ -57,6 +57,30 @@ test('medico ve apenas seus pacientes e seu cadastro no painel', () => {
   assert.equal(b.auth.adaptResponse('/fila?status=aguardando',[{medico_id:7},{medico_id:8}]).length,1);
   assert.equal(b.auth.adaptResponse('/medicos',[{id:8},{id:7}])[0].id,7);
 });
+test('medico ve somente seus agendamentos na nova fila do painel', () => {
+  const b=browser(medico,'medico');
+  const resultado=b.auth.adaptResponse('/agendamentos?status=agendado',[
+    {id:1,medico_id:8,paciente_id:2}, {id:2,medico_id:7,paciente_id:3},
+  ]);
+  assert.equal(resultado.length,1);
+  assert.equal(resultado[0].id,2);
+});
+test('medico consulta o prontuario no painel sem atalho para tela de paciente', () => {
+  const b=browser(medico,'medico');
+  const link={hidden:false}; b.nodes.set('prontuario-link-historico',link);
+  b.init();
+  assert.equal(link.hidden,true);
+});
+test('lista de medicos agendados mantem somente o profissional identificado', () => {
+  const b=browser(medico,'medico');
+  const resultado=b.auth.adaptResponse('/agendamentos/medicos', [{id:8},{id:7}]);
+  assert.equal(resultado.length,1);
+  assert.equal(resultado[0].id,7);
+});
+test('paciente continua vendo especialistas disponiveis para agendar', () => {
+  const resultado=browser(paciente,'agendamento').auth.adaptResponse('/agendamentos/medicos', [{id:8},{id:7}]);
+  assert.equal(resultado.length,2);
+});
 test('paciente tem menu proprio e identificador preenchido e bloqueado', () => {
   const b=browser(paciente);
   const input={value:'99', readOnly:false}; b.nodes.set('paciente-id', input);

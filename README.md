@@ -29,7 +29,9 @@ ID ou e-mail. Acessos diretos a telas de atendimento sem perfil vão para o logi
   e histórico. O perfil prevalece sobre IDs recebidos na URL. Fila e agendamentos
   exibem somente seus registros, mantendo a posição na lista original.
 - Médico: redirecionamento ao painel médico, profissional pré-selecionado e
-  seletores bloqueados. A fila do painel é filtrada pelo médico identificado.
+  seletores bloqueados. As filas de urgência e agendamento são filtradas pelo
+  médico identificado; a modalidade inicial acompanha o profissional. O
+  prontuário evolutivo permanece no painel, sem atalho para a tela de paciente.
 - A separação visual está em `frontend/assets/js/auth.js`; o cliente central de
   API aplica os filtros antes de renderizar listas. O histórico é consultado pelo
   ID da sessão do paciente.
@@ -46,7 +48,7 @@ Use somente dados fictícios; isso não é controle de acesso para produção.
   contra a branch #74 enquanto ela não entrar na `dev`; depois altere o destino
   para `dev` e atualize a branch. Nenhum merge automático na `dev` é necessário.
 - Testes de API e HTML: `tests/integration/test_auth.py`.
-- Doze cenários de JavaScript real com Node.js: `tests/frontend/auth.test.cjs`.
+- Dezesseis cenários de JavaScript real com Node.js: `tests/frontend/auth.test.cjs`.
   O pytest executa esses cenários por `tests/test_auth_javascript.py`, sem pacotes
   npm adicionais. Requer Node.js 20 ou superior no PATH (disponível no runner
   Ubuntu do GitHub Actions e necessário também na execução local).

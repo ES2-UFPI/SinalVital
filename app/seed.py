@@ -67,45 +67,41 @@ MEDICOS_DEMONSTRACAO = (
 )
 
 
-def popular_pacientes(db: Session) -> int:
-    """Insere apenas pacientes ausentes, sem sobrescrever cadastros existentes."""
+def _popular_registros(
+    db: Session, modelo, registros, campos_identificacao: tuple[str, ...],
+    campos_atualizacao: tuple[str, ...] = (),
+) -> int:
+    """Insere ausentes e atualiza apenas campos autorizados presentes nos dados."""
     inseridos = 0
     try:
-        for dados in PACIENTES_DEMONSTRACAO:
-            if db.query(Paciente).filter(Paciente.email == dados["email"]).first() is None:
-                db.add(Paciente(**dados))
+        for dados in registros:
+            identificacao = {campo: dados[campo] for campo in campos_identificacao}
+            existente = db.query(modelo).filter_by(**identificacao).first()
+            if existente is None:
+                db.add(modelo(**dados))
                 inseridos += 1
+            else:
+                for campo in campos_atualizacao:
+                    if campo in dados:
+                        setattr(existente, campo, dados[campo])
         db.commit()
     except Exception:
         db.rollback()
         raise
     return inseridos
+
+
+def popular_pacientes(db: Session) -> int:
+    """Insere apenas pacientes ausentes, sem sobrescrever cadastros existentes."""
+    return _popular_registros(db, Paciente, PACIENTES_DEMONSTRACAO, ("email",))
 
 
 def popular_medicos(db: Session) -> int:
-    """Identifica médicos da demo por nome e especialidade, preservando alterações."""
-    inseridos = 0
-    try:
-        for dados in MEDICOS_DEMONSTRACAO:
-            existente = db.query(Medico).filter_by(
-                nome=dados["nome"], especialidade=dados["especialidade"]
-            ).first()
-            if existente is None:
-                db.add(Medico(**dados))
-                inseridos += 1
-            else:
-                # Atualiza campos novos caso já exista de execuções anteriores
-                if "tipo_atendimento" in dados:
-                    existente.tipo_atendimento = dados["tipo_atendimento"]
-                if "dias_atendimento" in dados:
-                    existente.dias_atendimento = dados.get("dias_atendimento")
-                if "limite_diario" in dados:
-                    existente.limite_diario = dados.get("limite_diario")
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-    return inseridos
+    """Preserva capacidade e ativo; sincroniza os campos de agenda definidos no seed."""
+    return _popular_registros(
+        db, Medico, MEDICOS_DEMONSTRACAO, ("nome", "especialidade"),
+        campos_atualizacao=("tipo_atendimento", "dias_atendimento", "limite_diario"),
+    )
 
 
 def main():

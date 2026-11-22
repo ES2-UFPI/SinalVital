@@ -18,10 +18,15 @@ class AgendamentoResponse(BaseModel):
     id: int
     paciente_id: int
     paciente_nome: Optional[str] = None
+    paciente_idade: Optional[int] = None
+    paciente_condicao_cronica: Optional[str] = None
+    paciente_gestante: Optional[bool] = None
     medico_id: int
     medico_nome: Optional[str] = None
     medico_especialidade: Optional[str] = None
     triagem_id: Optional[int] = None
+    urgencia: Optional[str] = None
+    justificativa_ia: Optional[str] = None
     data_agendamento: date
     motivo: str
     prioridade: float
@@ -39,19 +44,38 @@ class AgendamentoResponse(BaseModel):
         # Extrai atributos do ORM se presentes
         paciente = getattr(data, "paciente", None)
         medico = getattr(data, "medico", None)
+        triagem = getattr(data, "triagem", None)
 
         paciente_nome = getattr(paciente, "nome", None) if paciente else None
+        paciente_idade = getattr(paciente, "idade", None) if paciente else None
+        paciente_condicao_cronica = (
+            getattr(paciente, "condicao_cronica", None) if paciente else None
+        )
+        paciente_gestante = getattr(paciente, "gestante", None) if paciente else None
         medico_nome = getattr(medico, "nome", None) if medico else None
         medico_especialidade = getattr(medico, "especialidade", None) if medico else None
+        urgencia = (
+            getattr(triagem, "urgencia", None) if triagem is not None else "baixa"
+        )
+        justificativa_ia = (
+            getattr(triagem, "justificativa", None)
+            if triagem is not None
+            else getattr(data, "justificativa_urgencia", None)
+        )
 
         return {
             "id": getattr(data, "id", None),
             "paciente_id": getattr(data, "paciente_id", None),
             "paciente_nome": paciente_nome,
+            "paciente_idade": paciente_idade,
+            "paciente_condicao_cronica": paciente_condicao_cronica,
+            "paciente_gestante": paciente_gestante,
             "medico_id": getattr(data, "medico_id", None),
             "medico_nome": medico_nome,
             "medico_especialidade": medico_especialidade,
             "triagem_id": getattr(data, "triagem_id", None),
+            "urgencia": urgencia,
+            "justificativa_ia": justificativa_ia,
             "data_agendamento": getattr(data, "data_agendamento", None),
             "motivo": getattr(data, "motivo", None),
             "prioridade": getattr(data, "prioridade", 0.0),
