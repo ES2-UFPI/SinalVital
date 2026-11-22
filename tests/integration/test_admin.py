@@ -98,3 +98,26 @@ def test_painel_separado_sem_link_publico(client):
                    'role="tablist"','id="painel-pacientes"','id="painel-medicos"']:
         assert trecho in resposta.text
     assert '/pages/admin.html' not in client.get('/').text
+
+
+def test_novo_medico_ativo_pode_entrar_no_painel_clinico(client):
+    dados={'nome':'Profissional novo','especialidade':'cardiologia','capacidade_simultanea':1}
+    medico=client.post('/admin/medicos',json=dados,headers=HEADERS).json()
+    assert medico['tipo_atendimento']=='urgencia'
+    assert medico['dias_atendimento'] is None
+    assert client.post('/auth/login',json={
+        'perfil':'medico','identificador':str(medico['id'])}).status_code==200
+
+
+def test_triagem_sem_fila_e_exibida_sem_relato_clinico(client, db_session):
+    from app.database.models import Paciente, Triagem
+    paciente=Paciente(nome='Triagem pendente',email='triagem.admin@example.com')
+    db_session.add(paciente); db_session.commit()
+    db_session.add(Triagem(paciente_id=paciente.id,texto_sintomas='Relato reservado'))
+    db_session.commit()
+    resposta=client.get('/admin/pacientes?etapa=triagem',headers=HEADERS)
+    assert resposta.status_code==200
+    item=resposta.json()[0]['atendimentos'][0]
+    assert item['tipo']=='triagem' and item['etapa']=='triagem'
+    assert item['medico_nome'] is None
+    assert 'Relato reservado' not in resposta.text

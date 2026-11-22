@@ -1,0 +1,15 @@
+.admin-tabs { display:flex; gap:12px; flex-wrap:wrap; margin:24px 0; }
+.admin-tabs [aria-selected="true"] { background:var(--accent); color:#fff; }
+.admin-list { list-style:none; padding:0; display:grid; gap:16px; }
+.admin-card { border:1px solid var(--line); border-radius:10px; padding:18px; overflow-wrap:anywhere; }
+.admin-card h3 { margin-top:0; }
+.admin-card summary { cursor:pointer; font-weight:650; }
+.admin-card p { margin:8px 0; }
+.admin-days { display:flex; flex-wrap:wrap; gap:14px; }
+.admin-days label, .admin-checkbox { display:flex; align-items:center; gap:10px; }
+.admin-days input, .admin-checkbox input { width:24px; height:24px; margin:0; accent-color:var(--accent); }
+#admin-agenda { border:1px solid var(--line); border-radius:10px; margin:20px 0; padding:18px; }
+.admin-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.admin-vinculos { padding-left:22px; }
+.admin-vinculos li { margin:18px 0; }
+body.high-contrast .admin-tabs [aria-selected="true"] { background:#ffdf00; color:#000; }
