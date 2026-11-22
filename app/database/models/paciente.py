@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -14,6 +14,7 @@ class Paciente(Base):
     email = Column(String(120), unique=True, nullable=False, index=True)
     idade = Column(Integer, nullable=True)
     condicao_cronica = Column(String(200), nullable=True)
+    gestante = Column(Boolean, default=False, nullable=True)
     criado_em = Column(
         DateTime,
         default=lambda: datetime.now(timezone.utc),
@@ -27,14 +28,20 @@ class Paciente(Base):
         order_by="desc(EventoHistorico.criado_em)"
     )
 
-
-    triagens= relationship("Triagem", back_populates= "paciente", cascade="all, delete-orphan", order_by="desc(Triagem.criado_em)")
+    triagens = relationship("Triagem", back_populates="paciente", cascade="all, delete-orphan", order_by="desc(Triagem.criado_em)")
 
     itens_fila = relationship(
         "ItemFila",
         back_populates="paciente",
         cascade="all, delete-orphan",
         order_by="desc(ItemFila.criado_em)",
+    )
+
+    agendamentos = relationship(
+        "Agendamento",
+        back_populates="paciente",
+        cascade="all, delete-orphan",
+        order_by="desc(Agendamento.data_agendamento)",
     )
 
 
