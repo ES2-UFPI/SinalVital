@@ -69,3 +69,13 @@ class DisponibilidadeDiaResponse(BaseModel):
     vagas_ocupadas: int
     vagas_restantes: int
     disponivel: bool
+
+
+class MedicoAgendamentoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    nome: str
+    especialidade: str
+    dias_atendimento: Optional[str] = None
+    limite_diario: Optional[int] = None

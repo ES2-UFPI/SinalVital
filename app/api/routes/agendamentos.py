@@ -8,6 +8,7 @@ from app.api.schemas.agendamento import (
     AgendamentoCreate,
     AgendamentoResponse,
     DisponibilidadeDiaResponse,
+    MedicoAgendamentoResponse,
 )
 from app.database import get_db
 from app.database.models import Agendamento, Medico, Paciente, Triagem
@@ -15,6 +16,25 @@ from app.domain.agendamento.priorizacao import calcular_prioridade_agendamento
 from app.domain.triagem.strategies.classificador import ClassificadorFactory
 
 router = APIRouter(prefix="/agendamentos", tags=["agendamentos"])
+
+
+@router.get(
+    "/medicos",
+    response_model=list[MedicoAgendamentoResponse],
+    summary="Listar médicos disponíveis para agendamento",
+)
+def listar_medicos_agendamento(
+    especialidade: Optional[str] = Query(None, description="Filtrar por especialidade"),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Medico).filter(
+        Medico.ativo.is_(True),
+        Medico.tipo_atendimento.in_(["agendamento", "ambos"]),
+    )
+    if especialidade:
+        query = query.filter(Medico.especialidade == especialidade.lower().strip())
+
+    return query.order_by(Medico.nome.asc()).all()
 
 MAPA_DIAS_SEMANA_NOMES = {
     0: "segunda-feira",

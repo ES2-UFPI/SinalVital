@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#16294A">
+  <title>Agendar consulta | SinalVital</title>
+  <link rel="stylesheet" href="/assets/css/base.css">
+  <link rel="stylesheet" href="/assets/css/feedback.css">
+  <script src="/assets/js/feedback.js" defer></script>
+  <script src="/assets/js/app.js" defer></script>
+  <script src="/assets/js/agendamento.js" defer></script>
+</head>
+<body data-page="agendamento">
+  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
+  <div class="pulse" aria-hidden="true">
+    <svg viewBox="0 0 1440 30" preserveAspectRatio="none">
+      <path d="M0 15 H190 l8 -5 8 10 8 -5 h110 l10 -10 10 23 10 -26 10 13 h250 l8 -5 8 10 8 -5 h180 l10 -10 10 23 10 -26 10 13 H1440"/>
+    </svg>
+  </div>
+  <header class="header">
+    <a class="brand" href="/" aria-label="SinalVital, início">
+      <span class="brand-icon" aria-hidden="true">✚</span> Sinal<span>Vital</span>
+    </a>
+    <div class="reading" aria-label="Opções de leitura">
+      <button type="button" id="font-down" aria-label="Diminuir tamanho das letras">A−</button>
+      <button type="button" id="font-up" aria-label="Aumentar tamanho das letras">A+</button>
+      <button type="button" id="contrast" aria-pressed="false">◐ <span>Alto contraste</span></button>
+    </div>
+  </header>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <p class="eyebrow">ESPAÇO DO PACIENTE</p>
+      <nav aria-label="Navegação principal">
+        <a href="/" data-nav="inicio"><span aria-hidden="true">⌂</span> Início</a>
+        <a href="/pages/cadastro.html" data-nav="cadastro"><span aria-hidden="true">＋</span> Meu cadastro</a>
+        <a href="/pages/triagem.html" data-nav="triagem"><span aria-hidden="true">♡</span> Relatar sintomas</a>
+        <a href="/pages/agendamento.html" data-nav="agendamento"><span aria-hidden="true">📅</span> Agendar consulta</a>
+        <a href="/pages/medico.html" data-nav="medico"><span aria-hidden="true">✚</span> Painel médico</a>
+        <a href="/pages/historico.html" data-nav="historico"><span aria-hidden="true">◷</span> Meu histórico</a>
+        <a href="/pages/fila.html" data-nav="fila"><span aria-hidden="true">⋮</span> Fila de espera</a>
+      </nav>
+      <div class="side-note">
+        <span class="status-dot"></span> Demonstração · Agendamentos
+        <p>Consultas agendadas com prioridade fixa.</p>
+      </div>
+    </aside>
+
+    <main id="conteudo" tabindex="-1">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">03 · MARQUE SUA CONSULTA</p>
+          <h1>Agendar consulta</h1>
+          <p>Escolha a especialidade, o médico e uma data com vagas abertas de forma simples e acessível.</p>
+        </div>
+      </div>
+
+      <!-- Feedback global da tela -->
+      <div id="feedback" class="feedback" role="status" aria-live="polite" hidden></div>
+
+      <!-- Painel de Alerta / Recomendação de Urgência da IA -->
+      <section id="painel-recomendacao-urgencia" class="result" tabindex="-1" hidden></section>
+
+      <!-- Painel de Comprovante de Agendamento -->
+      <section id="confirmacao-agendamento" class="result" tabindex="-1" hidden></section>
+
+      <!-- Formulário de Agendamento -->
+      <section class="panel agendamento-panel" aria-labelledby="form-title">
+        <h2 id="form-title">Preencha os dados do agendamento</h2>
+
+        <form id="agendamento-form" novalidate>
+          <input type="hidden" id="triagem-id-oculto" value="">
+
+          <!-- Passo 1: Paciente -->
+          <div class="campo-bloco">
+            <label for="paciente-id">1. Seu número de paciente *</label>
+            <input
+              id="paciente-id"
+              type="number"
+              min="1"
+              step="1"
+              required
+              inputmode="numeric"
+              placeholder="Ex.: 1"
+              aria-describedby="paciente-hint"
+            >
+            <p id="paciente-hint" class="hint">Use o número que você recebeu no cadastro. <a href="/pages/cadastro.html">Ainda não tenho cadastro</a></p>
+          </div>
+
+          <!-- Passo 2: Especialidade -->
+          <div class="campo-bloco">
+            <label for="select-especialidade">2. Escolha a especialidade médica *</label>
+            <select id="select-especialidade" required>
+              <option value="">Selecione a especialidade desejada...</option>
+              <option value="clinica_geral">Clínica Geral</option>
+              <option value="cardiologia">Cardiologia</option>
+              <option value="oftalmologia">Oftalmologia</option>
+              <option value="pediatria">Pediatria</option>
+              <option value="neurologia">Neurologia</option>
+              <option value="ortopedia">Ortopedia</option>
+            </select>
+          </div>
+
+          <!-- Passo 3: Escolha do Médico -->
+          <div id="container-medicos" class="campo-bloco" hidden>
+            <label id="lbl-medicos">3. Escolha o profissional de saúde *</label>
+            <div id="lista-medicos" class="medicos-grade" role="region" aria-labelledby="lbl-medicos"></div>
+          </div>
+
+          <!-- Passo 4: Escolha da Data (com bloqueio visual de dias lotados) -->
+          <div id="container-datas" class="campo-bloco" hidden>
+            <label id="lbl-datas">4. Escolha um dia com vagas abertas *</label>
+            <p class="hint">Dias em vermelho/apagados já atingiram o limite de vagas e não podem ser agendados.</p>
+            <div id="grade-datas" class="grade-datas" role="region" aria-labelledby="lbl-datas"></div>
+          </div>
+
+          <!-- Passo 5: Motivo da Consulta -->
+          <div class="campo-bloco">
+            <label for="motivo-agendamento">5. Qual é o motivo da sua consulta? *</label>
+            <div id="aviso-triagem-previa" class="notice" hidden></div>
+            <textarea
+              id="motivo-agendamento"
+              minlength="3"
+              rows="4"
+              required
+              placeholder="Ex.: Gostaria de fazer meu check-up anual e renovar meus exames."
+              aria-describedby="motivo-hint"
+            ></textarea>
+            <p id="motivo-hint" class="hint">Escreva com suas próprias palavras o que você precisa ou está sentindo.</p>
+          </div>
+
+          <!-- Passo 6: Condições adicionais de prioridade -->
+          <div class="campo-bloco">
+            <label class="checkbox-container">
+              <input type="checkbox" id="check-gestante">
+              <span>Paciente gestante (acrescenta prioridade fixa legal ao atendimento)</span>
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button class="button primary btn-agendar" type="submit">
+              📅 Confirmar meu agendamento →
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Fila de Consultas Agendadas (SEPARADA da Fila de Urgência) -->
+      <section class="panel fila-agendada-secao" aria-labelledby="titulo-fila-agendada">
+        <div class="fila-agendada-header">
+          <div>
+            <span class="eyebrow">ACOMPANHAMENTO ELETIVO</span>
+            <h2 id="titulo-fila-agendada">Fila de consultas agendadas</h2>
+            <p class="field-help">Esta lista mostra as consultas agendadas com prioridade fixa (idade, gestação e saúde), separada da fila de pronto atendimento (urgência).</p>
+          </div>
+          <button type="button" id="btn-atualizar-fila-agendada" class="btn" aria-label="Atualizar lista de agendamentos">
+            ↻ Atualizar lista
+          </button>
+        </div>
+
+        <div id="fila-agendada-vazia" class="empty" hidden>
+          <span aria-hidden="true">📅</span>
+          <h3>Nenhuma consulta agendada no momento</h3>
+          <p>Quando você ou outros pacientes confirmarem agendamentos, eles aparecerão aqui em ordem de prioridade.</p>
+        </div>
+
+        <ol id="fila-agendada-lista" class="queue-list" aria-label="Fila de consultas agendadas" aria-live="polite"></ol>
+
+        <div class="help-strip">
+          <span aria-hidden="true">ⓘ</span>
+          <p>Deseja ver a fila de pronto atendimento (urgência)? <a href="/pages/fila.html">Acessar a Fila de Urgência</a>.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    SinalVital <span>•</span> Cuidado que começa com escuta.
+    <small>Ambiente de demonstração. Utilize dados fictícios.</small>
+  </footer>
+
+  <style>
+    /* Estilos específicos da tela de agendamento e acessibilidade */
+    .agendamento-panel {
+      margin-bottom: 32px;
+    }
+
+    .campo-bloco {
+      margin-bottom: 24px;
+    }
+
+    .campo-bloco label {
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+
+    /* Grade de Médicos */
+    .medicos-grade {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 10px;
+    }
+
+    .medico-opcao-card {
+      background: var(--bg);
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color .15s, transform .15s;
+    }
+
+    .medico-opcao-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .medico-opcao-card.selecionado {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+
+    .medico-dias {
+      font-size: .85rem;
+      color: var(--muted);
+    }
+
+    .medico-limite {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--navy);
+    }
+
+    /* Grade de Datas e Bloqueio Visual de Dias Lotados */
+    .grade-datas {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .dia-opcao-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 10px;
+      border: 2px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      color: var(--ink);
+      min-height: 85px;
+      text-align: center;
+      transition: all .15s;
+      gap: 4px;
+    }
+
+    .dia-opcao-btn .dia-nome {
+      font-size: .8rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .dia-opcao-btn .dia-data {
+      font-size: 1rem;
+      font-weight: 750;
+    }
+
+    .dia-opcao-btn .dia-vagas {
+      font-size: .75rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    .dia-opcao-btn .tag-livre {
+      background: #eaf8ef;
+      color: #1e6041;
+      border: 1px solid #1e6041;
+    }
+
+    .dia-opcao-btn.dia-disponivel:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      cursor: pointer;
+    }
+
+    .dia-opcao-btn.dia-disponivel.selecionado {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+
+    /* BLOQUEIO VISUAL DO DIA LOTADO */
+    .dia-opcao-btn.dia-lotado {
+      opacity: .55;
+      background: #f0f2f5;
+      border: 2px dashed #b5bfc9;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .dia-opcao-btn .tag-lotado {
+      background: #fff0f2;
+      color: #a61630;
+      border: 1px solid #a61630;
+      text-decoration: none;
+    }
+
+    /* Checkbox Acessível */
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: .95rem;
+      cursor: pointer;
+    }
+
+    .checkbox-container input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      min-height: 22px;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    /* Botão Primário de Agendamento */
+    .btn-agendar {
+      font-size: 1.05rem;
+      padding: 16px 28px;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    /* Alerta de Recomendação de Urgência */
+    .alerta-urgencia-box {
+      background: #fff3e6;
+      border: 3px solid #d95300;
+      border-radius: 14px;
+      padding: 24px;
+      color: #612400;
+      margin-bottom: 24px;
+    }
+
+    .alerta-urgencia-box h2 {
+      color: #a61630;
+      margin-top: 8px;
+      font-size: 1.35rem;
+    }
+
+    .alerta-motivo {
+      background: #fff;
+      padding: 14px;
+      border-radius: 8px;
+      border-left: 4px solid #a61630;
+      margin: 14px 0;
+      font-size: .95rem;
+    }
+
+    .alerta-acoes {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .btn-urgencia {
+      background: #a61630;
+      border-color: #a61630;
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    /* Comprovante */
+    .comprovante-box {
+      background: #eaf8ef;
+      border: 2px solid #1e6041;
+      border-radius: 14px;
+      padding: 24px;
+      color: #0d3822;
+      margin-bottom: 24px;
+    }
+
+    .comprovante-box h2 {
+      color: #1e6041;
+      margin-top: 4px;
+    }
+
+    .comprovante-box ul {
+      list-style: none;
+      padding: 0;
+      margin: 14px 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    /* Seção da Fila de Agendamento */
+    .fila-agendada-secao {
+      margin-top: 40px;
+      border-top: 3px solid var(--line);
+    }
+
+    .fila-agendada-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .agendamento-card {
+      border-left: 5px solid #165ac0;
+    }
+
+    .agendamento-posicao {
+      background: #165ac0;
+    }
+
+    /* Alto Contraste */
+    body.high-contrast .medico-opcao-card,
+    body.high-contrast .dia-opcao-btn {
+      background: #101010;
+      border-color: #fff;
+      color: #fff;
+    }
+
+    body.high-contrast .dia-opcao-btn.dia-lotado {
+      background: #222;
+      border-color: #777;
+      opacity: .5;
+    }
+
+    body.high-contrast .dia-opcao-btn.selecionado,
+    body.high-contrast .medico-opcao-card.selecionado {
+      border-color: #ffdf00;
+      background: #252500;
+    }
+
+    body.high-contrast .alerta-urgencia-box {
+      background: #2b1200;
+      border-color: #ffdf00;
+      color: #fff;
+    }
+
+    body.high-contrast .comprovante-box {
+      background: #002611;
+      border-color: #55ff99;
+      color: #fff;
+    }
+
+    body.high-contrast .agendamento-posicao {
+      background: #ffdf00;
+      color: #000;
+    }
+  </style>
+</body>
+</html>
