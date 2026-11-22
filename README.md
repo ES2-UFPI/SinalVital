@@ -1,5 +1,13 @@
 # SinalVital
 
+## Administração do protótipo
+
+O painel separado está em http://127.0.0.1:8000/pages/admin.html, sem link nos
+menus públicos. Defina `ADMIN_PASSWORD` no `.env` e reinicie a API para habilitar
+cadastro/listagem de médicos e consulta de pacientes com seus atendimentos.
+A senha é verificada pelo backend; não basta escolher um perfil no navegador.
+Consulte [configuração, operações e testes](docs/painel-administrativo.md).
+
 ## Experiência do paciente identificado — complemento da #75
 
 Após entrar com ID ou e-mail, a página inicial apresenta **Olá, [nome]! Como você
