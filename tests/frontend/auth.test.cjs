@@ -7,7 +7,7 @@ const source = fs.readFileSync('frontend/assets/js/auth.js', 'utf8');
 function browser(profile, page = 'historico') {
   const data = new Map(profile ? [['sv-profile', JSON.stringify(profile)], ['sv-patient', '99']] : []);
   const nodes = new Map();
-  const links = ['inicio','cadastro','triagem','agendamento','historico','fila','medico'].map(nav => ({dataset:{nav}, hidden:false}));
+  const links = ['inicio','cadastro','dados','triagem','agendamento','historico','fila','medico'].map(nav => ({dataset:{nav}, hidden:false}));
   let init;
   const location = {assign(url) { this.target=url; }, replace(url) { this.target=url; }};
   const document = {
@@ -100,6 +100,32 @@ test('visitante e direcionado ao login em telas de atendimento', () => {
 });
 test('novo cadastro permanece acessivel sem perfil', () => {
   const b=browser(null,'cadastro'); b.init(); assert.equal(b.location.target,undefined);
+});
+
+test('paciente recebe saudacao personalizada com nome tratado como texto', () => {
+  const b=browser({...paciente,nome:'Raimundo <teste>'},'inicio');
+  const heading={textContent:''}; b.nodes.set('saudacao-paciente',heading);
+  b.init();
+  assert.equal(heading.textContent,'Olá, Raimundo <teste>! Como você está hoje?');
+});
+test('paciente ve meus dados e nao o novo cadastro no menu', () => {
+  const b=browser(paciente,'inicio'); b.init();
+  assert.equal(b.links.find(l=>l.dataset.nav==='cadastro').hidden,true);
+  assert.equal(b.links.find(l=>l.dataset.nav==='dados').hidden,false);
+});
+test('cadastro direto do paciente logado volta ao inicio', () => {
+  const b=browser(paciente,'cadastro'); b.init(); assert.equal(b.location.target,'/');
+});
+test('visitante mantem cadastro e nao ve meus dados', () => {
+  const b=browser(null,'inicio'); b.init();
+  assert.equal(b.links.find(l=>l.dataset.nav==='cadastro').hidden,false);
+  assert.equal(b.links.find(l=>l.dataset.nav==='dados').hidden,true);
+});
+test('meus dados requer identificacao e nao e uma tela medica', () => {
+  const visitante=browser(null,'dados'); visitante.init();
+  assert.equal(visitante.location.target,'/pages/login.html');
+  const profissional=browser(medico,'dados'); profissional.init();
+  assert.equal(profissional.location.target,'/pages/medico.html');
 });
 
 test('formulario de login salva perfil, limpa ID anterior e redireciona', async () => {
