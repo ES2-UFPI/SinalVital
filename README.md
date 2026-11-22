@@ -1,5 +1,64 @@
 # SinalVital
 
+## Identificação por perfil — #73, #74 e #75
+
+O protótipo possui entrada em http://127.0.0.1:8000/pages/login.html, reutilizando
+os estilos, marca e controles de leitura do site. Execute o seed e inicie a API:
+
+```powershell
+.\venv\Scripts\python.exe -m app.seed
+.\venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+`POST /auth/login` recebe `perfil` (`paciente` ou `medico`) e `identificador`
+(texto). Pacientes entram com ID ou e-mail do cadastro; médicos entram com ID
+e precisam estar ativos. IDs pertencem a tabelas distintas: primeiro selecione
+o perfil correto. O retorno é `{perfil, id, nome}`, com status 200. Identificação
+inexistente/inativa retorna 401; perfil ou campos inválidos retornam 422.
+
+Exemplo de corpo: `{"perfil":"paciente","identificador":"raimundo@example.com"}`.
+Para descobrir os IDs de demonstração dos médicos, consulte `GET /medicos` no
+`/docs`. Não se deve presumir o ID em um banco que já contém cadastros.
+
+O perfil é armazenado em `sessionStorage` nesta aba. **Sair / Trocar Perfil**
+remove o perfil e o antigo identificador de paciente antes de voltar ao login.
+O cadastro de paciente permanece público; após cadastrar, entre usando seu novo
+ID ou e-mail. Acessos diretos a telas de atendimento sem perfil vão para o login.
+
+- Paciente: menu próprio, ID preenchido e somente leitura em triagem, agendamento
+  e histórico. O perfil prevalece sobre IDs recebidos na URL. Fila e agendamentos
+  exibem somente seus registros, mantendo a posição na lista original.
+- Médico: redirecionamento ao painel médico, profissional pré-selecionado e
+  seletores bloqueados. A fila do painel é filtrada pelo médico identificado.
+- A separação visual está em `frontend/assets/js/auth.js`; o cliente central de
+  API aplica os filtros antes de renderizar listas. O histórico é consultado pelo
+  ID da sessão do paciente.
+
+**Escopo de demonstração:** não há senha, token ou autorização no backend. Ocultar
+telas e filtrar respostas no navegador não protege a API: ela continua acessível
+diretamente e as listagens podem trafegar dados de outros perfis antes do filtro.
+Use somente dados fictícios; isso não é controle de acesso para produção.
+
+### Testes e branches
+
+- `feat/74-login-perfis`: identificação, sessão e tela de login (#74).
+- `feat/75-isolamento-perfis`: criada sobre a #74, pois depende dela. Revise o PR
+  contra a branch #74 enquanto ela não entrar na `dev`; depois altere o destino
+  para `dev` e atualize a branch. Nenhum merge automático na `dev` é necessário.
+- Testes de API e HTML: `tests/integration/test_auth.py`.
+- Doze cenários de JavaScript real com Node.js: `tests/frontend/auth.test.cjs`.
+  O pytest executa esses cenários por `tests/test_auth_javascript.py`, sem pacotes
+  npm adicionais. Requer Node.js 20 ou superior no PATH (disponível no runner
+  Ubuntu do GitHub Actions e necessário também na execução local).
+
+```powershell
+.\venv\Scripts\python.exe -m pytest -q
+node --test tests/frontend/auth.test.cjs
+```
+
+O histórico de commits registra a etapa Red antes da implementação para cada
+sub-issue. O CI existente continua executando o pytest em PRs para `dev`/`main`.
+
 ## Matching de médicos — [008-02] (#41)
 
 `MotorPriorizacao.escolher_medico(especialidade, medicos, carga_atual)`, em
