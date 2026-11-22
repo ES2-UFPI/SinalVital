@@ -74,7 +74,11 @@ def inserir_na_fila(dados: ItemFilaCreate, db: Session = Depends(get_db)):
         especialidade = triagem.especialidade
         medicos = (
             db.query(Medico)
-            .filter(Medico.ativo.is_(True), Medico.especialidade == especialidade)
+            .filter(
+                Medico.ativo.is_(True),
+                Medico.especialidade == especialidade,
+                Medico.tipo_atendimento.in_(["urgencia", "ambos"]),
+            )
             .all()
         )
 
@@ -167,7 +171,11 @@ def listar_fila(
             especialidade = item.triagem.especialidade
             medicos_esp = (
                 db.query(Medico)
-                .filter(Medico.ativo.is_(True), Medico.especialidade == especialidade)
+                .filter(
+                    Medico.ativo.is_(True),
+                    Medico.especialidade == especialidade,
+                    Medico.tipo_atendimento.in_(["urgencia", "ambos"]),
+                )
                 .all()
             )
             medico_escolhido = MotorPriorizacao.escolher_medico(

@@ -520,12 +520,42 @@ if ($("historico-form") && /^[1-9]\d*$/.test($("paciente-id")?.value || "")) {
 const consultaForm = $("consulta-form");
 let medicosCache = [];
 let filaCache = [];
+let agendamentosMedicosCache = [];
+const medicosAgendamentoIds = new Set();
 const pacientesAtendidosNaSessao = new Set();
 const nomesPacientesCache = new Map();
 let ultimoMotivoFilaPreenchido = "";
 let timerBuscaPacienteId = null;
 let prontuarioMedicoEventosCache = [];
 let prontuarioMedicoPacienteIdAtual = null;
+
+function normalizarItemAgendamentoParaFilaMedica(ag) {
+  return {
+    id: ag.id,
+    agendamento_id: ag.id,
+    modalidade: "agendamento",
+    paciente_id: ag.paciente_id,
+    paciente_nome: ag.paciente_nome,
+    paciente_idade: ag.paciente_idade ?? null,
+    paciente_condicao_cronica: ag.paciente_condicao_cronica || null,
+    paciente_gestante: ag.paciente_gestante ?? null,
+    triagem_id: ag.triagem_id || null,
+    urgencia: ag.urgencia || (ag.recomenda_urgencia ? "alta" : "baixa"),
+    especialidade: ag.medico_especialidade || "clinica_geral",
+    motivo: ag.motivo,
+    relato_paciente: ag.motivo,
+    justificativa_ia:
+      ag.justificativa_ia ||
+      ag.justificativa_urgencia ||
+      "Consulta agendada com prioridade fixa por condições do paciente.",
+    status: ag.status || "agendado",
+    score: typeof ag.prioridade === "number" ? ag.prioridade : Number(ag.prioridade || 0),
+    data_agendamento: ag.data_agendamento || null,
+    medico_id: ag.medico_id,
+    medico_alocado: ag.medico_nome || `Médico #${ag.medico_id}`,
+    criado_em: ag.criado_em,
+  };
+}
 
 function criarItemMetadadoProntuario(rotulo, valor) {
   const box = element("div", undefined, "prontuario-meta-item");
@@ -762,7 +792,7 @@ function formatarNomeMedico(medico) {
   if (!medico || !medico.nome) return "Médico não identificado";
   const nome = String(medico.nome).trim();
   const prefixado =
-    /helena|ana|camila|z[eé]lia/i.test(nome) && !/^dra?\./i.test(nome)
+    /helena|ana|mariana|camila|z[eé]lia/i.test(nome) && !/^dra?\./i.test(nome)
       ? `Dra. ${nome}`
       : !/^dra?\./i.test(nome)
         ? `Dr(a). ${nome}`
@@ -770,7 +800,13 @@ function formatarNomeMedico(medico) {
   const esp = medico.especialidade
     ? ` — ${formatarEspecialidade(medico.especialidade)}`
     : "";
-  return `${prefixado}${esp}`;
+  const sufixoModalidade =
+    medico.id && medicosAgendamentoIds.size > 0
+      ? medicosAgendamentoIds.has(Number(medico.id))
+        ? " (Consulta Agendada)"
+        : " (Urgência)"
+      : "";
+  return `${prefixado}${esp}${sufixoModalidade}`;
 }
 
 function atualizarResumoPacienteSelecionado({ id, nome, motivo, bloqueado = false }) {
@@ -809,9 +845,14 @@ function destacarCardDaFilaPorPaciente(pacienteId) {
 }
 
 function validarAlocacaoPacienteParaMedico(pacienteId, medicoId) {
-  const itensDoPaciente = filaCache.filter(
+  const itensUrgencia = filaCache.filter(
     (i) => String(i.paciente_id) === String(pacienteId),
   );
+  const itensAgendados = agendamentosMedicosCache
+    .filter((a) => String(a.paciente_id) === String(pacienteId))
+    .map(normalizarItemAgendamentoParaFilaMedica);
+
+  const todosItensDoPaciente = [...itensUrgencia, ...itensAgendados];
   const medicoObj = medicosCache.find(
     (m) => String(m.id) === String(medicoId),
   );
@@ -819,7 +860,7 @@ function validarAlocacaoPacienteParaMedico(pacienteId, medicoId) {
     ? formatarNomeMedico(medicoObj)
     : `Médico #${medicoId}`;
 
-  if (!itensDoPaciente.length) {
+  if (!todosItensDoPaciente.length) {
     return {
       permitido: false,
       item: null,
@@ -828,7 +869,7 @@ function validarAlocacaoPacienteParaMedico(pacienteId, medicoId) {
   }
 
   if (medicoId) {
-    const itemAlocado = itensDoPaciente.find(
+    const itemAlocado = todosItensDoPaciente.find(
       (i) =>
         String(i.medico_id) === String(medicoId) &&
         (!medicoObj?.especialidade ||
@@ -837,7 +878,7 @@ function validarAlocacaoPacienteParaMedico(pacienteId, medicoId) {
             String(medicoObj.especialidade).toLowerCase()),
     );
     if (!itemAlocado) {
-      const itemRef = itensDoPaciente[0];
+      const itemRef = todosItensDoPaciente[0];
       const espDirecionada = formatarEspecialidade(itemRef.especialidade);
       const medAlocado =
         itemRef.medico_alocado || "outro profissional da especialidade";
@@ -850,7 +891,7 @@ function validarAlocacaoPacienteParaMedico(pacienteId, medicoId) {
     return { permitido: true, item: itemAlocado, mensagem: "" };
   }
 
-  return { permitido: true, item: itensDoPaciente[0], mensagem: "" };
+  return { permitido: true, item: todosItensDoPaciente[0], mensagem: "" };
 }
 
 async function sincronizarPacientePorId(
@@ -983,8 +1024,19 @@ async function carregarMedicos() {
   if (!selectMedico && !filtroFila) return [];
 
   try {
-    const medicos = await api("/medicos");
+    const [medicos, medicosAgendamento] = await Promise.all([
+      api("/medicos"),
+      api("/agendamentos/medicos").catch(() => []),
+    ]);
     medicosCache = Array.isArray(medicos) ? medicos : [];
+    medicosAgendamentoIds.clear();
+    if (Array.isArray(medicosAgendamento)) {
+      for (const mAg of medicosAgendamento) {
+        if (mAg && mAg.id != null) {
+          medicosAgendamentoIds.add(Number(mAg.id));
+        }
+      }
+    }
 
     const ativos = medicosCache.filter((m) => m.ativo !== false);
     const listaParaSelect = ativos.length > 0 ? ativos : medicosCache;
@@ -1057,12 +1109,25 @@ async function carregarMedicos() {
   }
 }
 
-function renderizarFilaMedica(itens) {
+function obterItensAtivosDaModalidadeAtual() {
+  const modalidade = $("filtro-modalidade-fila")?.value || "urgencia";
+  if (modalidade === "agendamento") {
+    return agendamentosMedicosCache.map(normalizarItemAgendamentoParaFilaMedica);
+  }
+  return filaCache;
+}
+
+function renderizarFilaMedica(itens = null) {
   const container = $("fila-medica");
   if (!container) return;
 
+  const modalidade = $("filtro-modalidade-fila")?.value || "urgencia";
+  const listaBase = Array.isArray(itens)
+    ? itens
+    : obterItensAtivosDaModalidadeAtual();
+
   const filtroMedicoVal = $("filtro-medico-fila")?.value || "";
-  const itensFiltrados = itens.filter((item) => {
+  const itensFiltrados = listaBase.filter((item) => {
     if (!filtroMedicoVal) return true;
     if (filtroMedicoVal === "sem_medico") return item.medico_id == null;
     return String(item.medico_id) === String(filtroMedicoVal);
@@ -1084,9 +1149,11 @@ function renderizarFilaMedica(itens) {
       element("h3", "Nenhum paciente aguardando neste filtro"),
       element(
         "p",
-        itens.length
-          ? "Altere o filtro de médico para visualizar outros pacientes na fila."
-          : "Assim que novas triagens forem concluídas, os pacientes aparecerão aqui por ordem de prioridade.",
+        listaBase.length
+          ? "Altere o filtro de médico ou a modalidade para visualizar outros pacientes."
+          : modalidade === "agendamento"
+            ? "As consultas agendadas aparecerão aqui ordenadas pela prioridade fixa do paciente."
+            : "Assim que novas triagens forem concluídas, os pacientes aparecerão aqui por ordem de prioridade.",
       ),
     );
     container.append(emptyBox);
@@ -1117,6 +1184,11 @@ function renderizarFilaMedica(itens) {
     const posBadge = element("span", `${posicao} · Score ${scoreFormatado}`, "queue-score");
     const seloUrgencia = urgenciaBadge(item.urgencia || "baixa");
     header.append(posBadge, seloUrgencia);
+    if (item.modalidade === "agendamento" && item.data_agendamento) {
+      header.append(
+        element("span", `Agendado: ${item.data_agendamento}`, "badge azul"),
+      );
+    }
     if (jaAtendido) {
       header.append(element("span", "Atendido nesta sessão ✓", "badge verde"));
     }
@@ -1185,20 +1257,39 @@ function renderizarFilaMedica(itens) {
   destacarCardDaFilaPorPaciente($("paciente-id")?.value?.trim());
 }
 
+async function carregarAgendamentosMedicos() {
+  try {
+    const agendamentos = await api("/agendamentos?status=agendado");
+    agendamentosMedicosCache = Array.isArray(agendamentos) ? agendamentos : [];
+    for (const ag of agendamentosMedicosCache) {
+      if (ag.paciente_id && ag.paciente_nome) {
+        nomesPacientesCache.set(Number(ag.paciente_id), ag.paciente_nome);
+      }
+    }
+    return agendamentosMedicosCache;
+  } catch {
+    agendamentosMedicosCache = [];
+    return [];
+  }
+}
+
 async function carregarFilaMedica() {
   const container = $("fila-medica");
   if (!container) return [];
 
   container.setAttribute("aria-busy", "true");
   try {
-    const itens = await api("/fila?status=aguardando");
+    const [itens] = await Promise.all([
+      api("/fila?status=aguardando"),
+      carregarAgendamentosMedicos(),
+    ]);
     filaCache = Array.isArray(itens) ? itens : [];
     for (const item of filaCache) {
       if (item.paciente_id && item.paciente_nome) {
         nomesPacientesCache.set(Number(item.paciente_id), item.paciente_nome);
       }
     }
-    renderizarFilaMedica(filaCache);
+    renderizarFilaMedica();
 
     // Sincroniza sempre o resumo com o ID atualmente preenchido no input #paciente-id
     const idAtual = $("paciente-id")?.value?.trim();
@@ -1221,19 +1312,36 @@ async function carregarFilaMedica() {
   }
 }
 
+function sincronizarModalidadeComMedicoSelecionado(medicoId) {
+  const selectModalidade = $("filtro-modalidade-fila");
+  if (!selectModalidade || !medicoId || medicoId === "sem_medico") return;
+  if (medicosAgendamentoIds.size === 0) return;
+
+  const isMedicoAgendamento = medicosAgendamentoIds.has(Number(medicoId));
+  selectModalidade.value = isMedicoAgendamento ? "agendamento" : "urgencia";
+}
+
 $("atualizar-fila")?.addEventListener("click", () => {
   carregarFilaMedica();
 });
 
-$("filtro-medico-fila")?.addEventListener("change", () => {
-  renderizarFilaMedica(filaCache);
+$("filtro-modalidade-fila")?.addEventListener("change", () => {
+  renderizarFilaMedica();
 });
 
-$("medico-id")?.addEventListener("change", () => {
+$("filtro-medico-fila")?.addEventListener("change", (e) => {
+  sincronizarModalidadeComMedicoSelecionado(e.currentTarget.value);
+  renderizarFilaMedica();
+});
+
+$("medico-id")?.addEventListener("change", (e) => {
   $("medico-id").removeAttribute("aria-invalid");
+  const medicoIdVal = e.currentTarget.value;
+  sincronizarModalidadeComMedicoSelecionado(medicoIdVal);
   if ($("filtro-medico-fila") && $("filtro-medico-fila").value) {
-    renderizarFilaMedica(filaCache);
+    $("filtro-medico-fila").value = medicoIdVal;
   }
+  renderizarFilaMedica();
   const idAtual = $("paciente-id")?.value?.trim();
   if (idAtual) {
     sincronizarPacientePorId(idAtual);
