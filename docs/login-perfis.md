@@ -11,6 +11,8 @@ podem ser consultados em `GET /medicos` pelo `/docs`.
 
 O perfil fica no `sessionStorage` da aba. O botão **Sair / Trocar Perfil** limpa
 o perfil e o ID de paciente legado. O cadastro continua disponível sem login.
+No complemento da #75, pacientes já identificados veem **Meus dados** para
+consulta do cadastro, e recebem uma saudação com seu nome na página inicial.
 
 Esta é uma identificação sem senha para demonstração com dados fictícios.
 Não cria token nem restringe o acesso direto à API. A navegação adaptada e os

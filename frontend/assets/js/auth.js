@@ -54,7 +54,7 @@ window.Auth = (() => {
       location.replace("/pages/login.html");
       return;
     }
-    if (perfil?.perfil === "paciente" && page === "medico") {
+    if (perfil?.perfil === "paciente" && ["medico", "cadastro"].includes(page)) {
       location.replace("/");
       return;
     }
@@ -62,13 +62,17 @@ window.Auth = (() => {
       location.replace("/pages/medico.html");
       return;
     }
-    document.querySelectorAll('[data-nav], a[href="/pages/medico.html"]').forEach(link => {
-      const nav = link.dataset.nav || "medico";
-      link.hidden = perfil?.perfil === "medico" ? nav !== "medico" : nav === "medico";
+    document.querySelectorAll('[data-nav], a[href="/pages/medico.html"], a[href="/pages/cadastro.html"], a[href="/pages/meus-dados.html"]').forEach(link => {
+      const destinos = {"/pages/medico.html":"medico", "/pages/cadastro.html":"cadastro", "/pages/meus-dados.html":"dados"};
+      const nav = link.dataset.nav || destinos[link.getAttribute?.("href")];
+      link.hidden = perfil?.perfil === "medico" ? nav !== "medico" :
+        perfil?.perfil === "paciente" ? ["medico", "cadastro"].includes(nav) : ["medico", "dados"].includes(nav);
     });
     const heading = document.querySelector(".sidebar .eyebrow");
     if (heading && perfil) heading.textContent = perfil.perfil === "medico" ? "ESPAÇO DO MÉDICO" : "ESPAÇO DO PACIENTE";
     if (perfil?.perfil === "paciente") {
+      const saudacao = document.getElementById("saudacao-paciente");
+      if (saudacao) saudacao.textContent = `Olá, ${perfil.nome}! Como você está hoje?`;
       const input = document.getElementById("paciente-id");
       if (input) { input.value = String(perfil.id); input.readOnly = true; }
     }
