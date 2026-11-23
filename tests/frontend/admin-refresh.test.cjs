@@ -42,6 +42,7 @@ const texto=node=>[node.textContent||'',...node.children.map(texto)].join(' ');
 test('atendimento muda automaticamente e preserva cartao aberto e filtros',async()=>{
   const b=browser();b.get('admin-busca').value='Paciente';b.get('admin-etapa').value='aguardando';
   b.setResponse(async()=>paciente('aguardando'));await b.enter();
+  assert.equal(b.timers.values().next().value.delay,10000);
   b.get('admin-pacientes-lista').children[0].open=true;
   b.setResponse(async()=>paciente('atendido'));await b.tick();
   assert.match(texto(b.get('admin-pacientes-lista')),/Atendido/);
@@ -86,4 +87,21 @@ test('falha automatica conserva dados e permite proxima tentativa',async()=>{
   assert.match(texto(b.get('admin-pacientes-lista')),/Aguardando/);
   b.setResponse(async()=>paciente('atendido'));await b.tick();
   assert.match(texto(b.get('admin-pacientes-lista')),/Atendido/);
+});
+test('dados inalterados nao reconstroem os cartoes e preservam filtro em edicao',async()=>{
+  const b=browser();b.setResponse(async()=>paciente('aguardando'));await b.enter();
+  const card=b.get('admin-pacientes-lista').children[0];
+  b.get('admin-busca').value='Texto ainda não aplicado';await b.tick();
+  assert.equal(b.get('admin-pacientes-lista').children[0],card);
+  assert.match(b.calls[1],/nome=&etapa=todos/);
+  assert.equal(b.get('admin-busca').value,'Texto ainda não aplicado');
+});
+test('erro da busca enfileirada durante atualizacao automatica e tratado',async()=>{
+  const b=browser();await b.enter();let resolver;
+  b.setResponse(()=>new Promise(resolve=>{resolver=resolve;}));await b.tick();
+  b.get('admin-busca').value='Novo filtro';await b.event('admin-filtros','submit');
+  b.setResponse(async()=>{throw new Error('Falha da busca');});
+  resolver([]);await b.settle();await b.settle();
+  assert.match(b.get('admin-feedback').textContent,/Falha da busca/);
+  assert.equal(b.timers.size,1);
 });

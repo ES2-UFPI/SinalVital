@@ -4,6 +4,14 @@
   const loginForm = byId("admin-login");
   const medicoForm = byId("admin-medico-form");
   const feedback = byId("admin-feedback");
+  const INTERVALO_PACIENTES = 10000;
+  let abaAtual = "medicos";
+  let timerPacientes = null;
+  let geracaoPacientes = 0;
+  let carregandoPacientes = false;
+  let repetirPacientes = false;
+  let filtrosPacientes = "";
+  let ultimaRenderizacao = null;
   const tipoLabel = {urgencia:"Urgência",agendamento:"Agendamento",ambos:"Ambos",
     triagem:"Triagem",consulta:"Consulta registrada"};
   const etapaLabel = {triagem:"Triagem realizada",aguardando:"Aguardando",em_atendimento:"Em atendimento",
@@ -21,6 +29,9 @@
     feedback.setAttribute("role", erro ? "alert" : "status");
   }
   function sair() {
+    pararAtualizacao();
+    filtrosPacientes = "";
+    ultimaRenderizacao = null;
     AdminAPI.logout();
     byId("admin-area").hidden = true;
     loginForm.hidden = false;
@@ -61,10 +72,17 @@
     return isNaN(date) ? "Data não informada" : date.toLocaleString("pt-BR");
   }
   function renderPacientes(pacientes) {
-    const lista = byId("admin-pacientes-lista"); lista.replaceChildren();
+    const versao = JSON.stringify(pacientes);
+    if (versao === ultimaRenderizacao) return;
+    ultimaRenderizacao = versao;
+    const lista = byId("admin-pacientes-lista");
+    const abertos = new Set(Array.from(lista.querySelectorAll("details[open]"), card => card.dataset.pacienteId));
+    lista.replaceChildren();
     if (!pacientes.length) { lista.append(node("p","Nenhum paciente encontrado para os filtros.")); return; }
     for (const paciente of pacientes) {
       const card = node("details", undefined, "admin-card");
+      card.dataset.pacienteId = String(paciente.id);
+      card.open = abertos.has(String(paciente.id));
       card.append(node("summary", `${paciente.nome} · #${paciente.id} · ${paciente.atendimentos.length} registro(s)`));
       if (!paciente.atendimentos.length) card.append(node("p","Sem atendimentos registrados."));
       else {
@@ -80,10 +98,60 @@
       lista.append(card);
     }
   }
-  async function carregarPacientes() {
-    const params = new URLSearchParams({nome:byId("admin-busca").value.trim(), etapa:byId("admin-etapa").value});
-    renderPacientes(await AdminAPI.request(`/admin/pacientes?${params}`));
-    aviso("Pacientes atualizados.");
+  function podeAtualizar() {
+    return abaAtual === "pacientes" && !document.hidden &&
+      !byId("admin-area").hidden && AdminAPI.isAuthenticated();
+  }
+  function pararAtualizacao() {
+    clearTimeout(timerPacientes);
+    timerPacientes = null;
+    geracaoPacientes += 1;
+    repetirPacientes = false;
+  }
+  function agendarAtualizacao() {
+    clearTimeout(timerPacientes);
+    timerPacientes = null;
+    if (podeAtualizar()) {
+      timerPacientes = setTimeout(() => {
+        timerPacientes = null;
+        carregarPacientes({automatico:true});
+      }, INTERVALO_PACIENTES);
+    }
+  }
+  async function carregarPacientes({automatico = false} = {}) {
+    if (!podeAtualizar()) return;
+    if (!automatico) {
+      filtrosPacientes = new URLSearchParams({
+        nome:byId("admin-busca").value.trim(), etapa:byId("admin-etapa").value,
+      }).toString();
+    }
+    if (carregandoPacientes) { repetirPacientes = true; return; }
+    clearTimeout(timerPacientes);
+    timerPacientes = null;
+    carregandoPacientes = true;
+    const geracao = geracaoPacientes;
+    const filtros = filtrosPacientes;
+    try {
+      const pacientes = await AdminAPI.request(`/admin/pacientes?${filtros}`);
+      if (geracao !== geracaoPacientes || filtros !== filtrosPacientes || !podeAtualizar()) return;
+      renderPacientes(pacientes);
+      byId("admin-auto-status").textContent = `Atualizado às ${new Date().toLocaleTimeString("pt-BR")}. Atualização automática a cada 10 segundos.`;
+      if (!automatico) aviso("Pacientes atualizados.");
+    } catch (error) {
+      if (geracao !== geracaoPacientes || filtros !== filtrosPacientes) return;
+      if (!AdminAPI.isAuthenticated()) { sair(); aviso(error.message, true); }
+      else if (automatico) {
+        byId("admin-auto-status").textContent = "Não foi possível atualizar agora. Mantivemos os últimos dados; tentaremos novamente automaticamente.";
+      } else throw error;
+    } finally {
+      carregandoPacientes = false;
+      if (repetirPacientes && podeAtualizar()) {
+        repetirPacientes = false;
+        // A busca manual pode ter sido enfileirada por um timer sem executar().
+        try { await carregarPacientes(); }
+        catch (error) { aviso(error.message, true); }
+      } else agendarAtualizacao();
+    }
   }
   function ajustarAgenda() {
     const agenda = byId("admin-tipo").value !== "urgencia";
@@ -92,6 +160,8 @@
     byId("admin-limite").required = agenda;
   }
   function selecionarAba(nome) {
+    pararAtualizacao();
+    abaAtual = nome;
     for (const id of ["medicos","pacientes"]) {
       const ativa = nome === id;
       byId(`aba-${id}`).setAttribute("aria-selected", String(ativa));
@@ -99,6 +169,10 @@
       byId(`painel-${id}`).hidden = !ativa;
     }
   }
+  document.addEventListener("visibilitychange", () => {
+    pararAtualizacao();
+    if (podeAtualizar()) carregarPacientes({automatico:true});
+  });
   loginForm.addEventListener("submit", event => {
     event.preventDefault();
     executar(loginForm.querySelector('[type="submit"]'), async () => {
