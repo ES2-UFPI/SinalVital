@@ -86,7 +86,7 @@ for(const nivel of Object.keys(TRIAGENS)){
     assert.ok(linkAgendamento,'botão de agendamento sempre visível');
   });
 
-  test(`botao de agendamento (${nivel}) leva especialidade, triagem_id e justificativa`,async()=>{
+  test(`botao de agendamento (${nivel}) leva especialidade, triagem_id e relato do paciente`,async()=>{
     const {linkAgendamento}=await enviarTriagem(nivel);
     const triagem=TRIAGENS[nivel];
     assert.ok(linkAgendamento.href.startsWith('/pages/agendamento.html?'));
@@ -94,7 +94,7 @@ for(const nivel of Object.keys(TRIAGENS)){
     assert.equal(params.get('paciente'),'2');
     assert.equal(params.get('triagem_id'),String(triagem.id));
     assert.equal(params.get('especialidade'),triagem.especialidade);
-    assert.equal(params.get('motivo'),triagem.justificativa);
+    assert.equal(params.get('motivo'),'Relato de teste para a triagem');
   });
 
   test(`botao sugerido pela IA (${nivel}) recebe o destaque`,async()=>{

@@ -337,3 +337,67 @@ def test_get_fila_congela_score_e_atualizado_em_apos_atendimento(client, db_sess
     assert abs((atualizado_retornado - atendido_em_fixo).total_seconds()) < 1
 
 
+def test_post_fila_paciente_ja_ativo_retorna_409(client, db_session):
+    """Impede que o mesmo paciente possua mais de um item ativo na fila de urgência."""
+    paciente = _criar_paciente(db_session, "Raimundo", "raimundo.dup@test.com")
+    _criar_medico(db_session, nome="Dra. Helena", especialidade="cardiologia", capacidade_simultanea=2)
+    t1 = _criar_triagem(db_session, paciente.id, urgencia="emergencia", especialidade="cardiologia")
+    t2 = _criar_triagem(db_session, paciente.id, urgencia="alta", especialidade="cardiologia")
+
+    r1 = client.post("/fila", json={"triagem_id": t1.id, "paciente_id": paciente.id})
+    assert r1.status_code == 201
+
+    r2 = client.post("/fila", json={"triagem_id": t2.id, "paciente_id": paciente.id})
+    assert r2.status_code == 409
+    assert "ativo" in r2.json()["detail"].lower()
+
+
+def test_post_fila_cancela_agendamento_pendente_da_mesma_triagem(client, db_session):
+    """Ao migrar para a fila de urgência com a mesma triagem_id, o agendamento pendente é cancelado."""
+    from datetime import date
+    from app.database.models import Agendamento
+
+    paciente = _criar_paciente(db_session, "Juscélio", "juscelio.mig@test.com")
+    medico_ag = Medico(
+        nome="Dr. Roberto",
+        especialidade="cardiologia",
+        capacidade_simultanea=2,
+        tipo_atendimento="agendamento",
+        dias_atendimento="terca,quinta",
+        limite_diario=4,
+        ativo=True,
+    )
+    medico_urg = _criar_medico(db_session, nome="Dra. Helena", especialidade="cardiologia", capacidade_simultanea=2)
+    db_session.add(medico_ag)
+    db_session.commit()
+    db_session.refresh(medico_ag)
+
+    hoje = date.today()
+    dias_ate_terca = (1 - hoje.weekday()) % 7 or 7
+    proxima_terca = hoje + timedelta(days=dias_ate_terca)
+
+    ag_resp = client.post(
+        "/agendamentos",
+        json={
+            "paciente_id": paciente.id,
+            "medico_id": medico_ag.id,
+            "data_agendamento": proxima_terca.isoformat(),
+            "motivo": "Dor intensa no peito e falta de ar",
+        },
+    )
+    assert ag_resp.status_code == 201
+    ag_data = ag_resp.json()
+    assert ag_data["recomenda_urgencia"] is True
+
+    fila_resp = client.post(
+        "/fila",
+        json={"triagem_id": ag_data["triagem_id"], "paciente_id": paciente.id},
+    )
+    assert fila_resp.status_code == 201
+    assert fila_resp.json()["medico_id"] == medico_urg.id
+
+    ag_banco = db_session.get(Agendamento, ag_data["id"])
+    assert ag_banco is not None
+    assert ag_banco.status == "cancelado"
+
+

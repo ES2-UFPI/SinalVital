@@ -421,7 +421,7 @@ async function carregarFilaAgendamentos() {
 
   listaFilaAgendadaEl.replaceChildren();
   try {
-    const agendamentos = await api("/agendamentos");
+    const agendamentos = await api("/agendamentos?status=agendado");
     listaFilaAgendadaEl.replaceChildren();
 
     if (!Array.isArray(agendamentos) || agendamentos.length === 0) {

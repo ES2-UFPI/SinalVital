@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.schemas.item_fila import ItemFilaCreate, ItemFilaResponse
 from app.database import get_db
-from app.database.models import ItemFila, Medico, Paciente, Triagem
+from app.database.models import Agendamento, ItemFila, Medico, Paciente, Triagem
 from app.domain.queue.motor_priorizacao import (
     AGUARDANDO_VAGA_NA_ESPECIALIDADE,
     MotorPriorizacao,
@@ -59,6 +59,21 @@ def inserir_na_fila(dados: ItemFilaCreate, db: Session = Depends(get_db)):
             detail=f"Paciente com id={paciente_id} não encontrado.",
         )
 
+    # 2.1. Impede duplicidade ativa do mesmo paciente na fila de urgência (409 Conflict)
+    item_ativo = (
+        db.query(ItemFila)
+        .filter(
+            ItemFila.paciente_id == paciente.id,
+            ItemFila.status.in_(["aguardando", "em_atendimento"]),
+        )
+        .first()
+    )
+    if item_ativo is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Paciente já possui atendimento ativo na fila de urgência.",
+        )
+
     # 3. Calcula a pontuação (score) a partir da triagem [006-02]
     try:
         urgencia = triagem.urgencia.lower() if triagem.urgencia else "baixa"
@@ -93,7 +108,7 @@ def inserir_na_fila(dados: ItemFilaCreate, db: Session = Depends(get_db)):
         if medico_escolhido is not None:
             medico_id = medico_escolhido.id
 
-    # 5. Cria e salva o ItemFila no banco
+    # 5. Cria e salva o ItemFila no banco e cancela agendamento pendente vinculado à triagem
     novo_item = ItemFila(
         paciente_id=paciente.id,
         triagem_id=triagem.id,
@@ -102,6 +117,19 @@ def inserir_na_fila(dados: ItemFilaCreate, db: Session = Depends(get_db)):
         score=score,
     )
     db.add(novo_item)
+
+    agendamentos_da_triagem = (
+        db.query(Agendamento)
+        .filter(
+            Agendamento.triagem_id == triagem.id,
+            Agendamento.paciente_id == paciente.id,
+            Agendamento.status == "agendado",
+        )
+        .all()
+    )
+    for ag in agendamentos_da_triagem:
+        ag.status = "cancelado"
+
     db.commit()
     db.refresh(novo_item)
 
