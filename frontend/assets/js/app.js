@@ -148,15 +148,41 @@ async function api(path, options = {}) {
       if (response.status === 400 && typeof body?.detail === "string") {
         throw new Error(body.detail);
       }
-      if (response.status === 409)
+      if (response.status === 409) {
+        if (
+          typeof body?.detail === "string" &&
+          body.detail.trim() &&
+          !/e-?mail/i.test(body.detail)
+        ) {
+          throw new Error(body.detail);
+        }
         throw new Error(
           "Este e-mail já está cadastrado. Use o número de paciente recebido anteriormente.",
         );
+      }
       if (response.status === 422)
         throw new Error("Confira os campos preenchidos e tente novamente.");
       throw new Error(
         "Não foi possível concluir agora. Tente novamente em instantes.",
       );
+    }
+    if (Array.isArray(body)) {
+      const rotaBase = String(path).split("?")[0];
+      if (rotaBase === "/fila") {
+        filaCompletaCache = body;
+        for (const item of body) {
+          if (item?.paciente_id && item?.paciente_nome) {
+            nomesPacientesCache.set(Number(item.paciente_id), item.paciente_nome);
+          }
+        }
+      } else if (rotaBase === "/agendamentos") {
+        agendamentosCompletosCache = body;
+        for (const ag of body) {
+          if (ag?.paciente_id && ag?.paciente_nome) {
+            nomesPacientesCache.set(Number(ag.paciente_id), ag.paciente_nome);
+          }
+        }
+      }
     }
     return window.Auth ? Auth.adaptResponse(path, body) : body;
   } catch (error) {
@@ -432,7 +458,7 @@ triagemForm?.addEventListener("submit", (event) => {
         paciente: pacienteId,
         triagem_id: String(data.id),
         especialidade: data.especialidade || "clinica_geral",
-        motivo: data.justificativa || data.texto_sintomas || "",
+        motivo: relato || data.texto_sintomas || data.justificativa || ""
       });
       linkAgendamento.href = `/pages/agendamento.html?${paramsAgendamento.toString()}`;
 
@@ -547,7 +573,10 @@ if ($("historico-form") && /^[1-9]\d*$/.test($("paciente-id")?.value || "")) {
 const consultaForm = $("consulta-form");
 let medicosCache = [];
 let filaCache = [];
+let filaCompletaCache = [];
 let agendamentosMedicosCache = [];
+let agendamentosCompletosCache = [];
+let medicosAgendamentoCarregados = false;
 const medicosAgendamentoIds = new Set();
 const pacientesAtendidosNaSessao = new Set();
 const nomesPacientesCache = new Map();
@@ -828,7 +857,7 @@ function formatarNomeMedico(medico) {
     ? ` — ${formatarEspecialidade(medico.especialidade)}`
     : "";
   const sufixoModalidade =
-    medico.id && medicosAgendamentoIds.size > 0
+    medico.id && (medicosAgendamentoCarregados || medicosAgendamentoIds.size > 0)
       ? medicosAgendamentoIds.has(Number(medico.id))
         ? " (Consulta Agendada)"
         : " (Urgência)"
@@ -883,10 +912,19 @@ function destacarCardDaFilaPorPaciente(pacienteId) {
 }
 
 function validarAlocacaoPacienteParaMedico(pacienteId, medicoId) {
-  const itensUrgencia = filaCache.filter(
+  const baseUrgencia =
+    filaCompletaCache.length >= filaCache.length && filaCompletaCache.length > 0
+      ? filaCompletaCache
+      : filaCache;
+  const baseAgendados =
+    agendamentosCompletosCache.length >= agendamentosMedicosCache.length &&
+    agendamentosCompletosCache.length > 0
+      ? agendamentosCompletosCache
+      : agendamentosMedicosCache;
+  const itensUrgencia = baseUrgencia.filter(
     (i) => String(i.paciente_id) === String(pacienteId),
   );
-  const itensAgendados = agendamentosMedicosCache
+  const itensAgendados = baseAgendados
     .filter((a) => String(a.paciente_id) === String(pacienteId))
     .map(normalizarItemAgendamentoParaFilaMedica);
 
@@ -1093,6 +1131,10 @@ async function carregarMedicos() {
         }
       }
     }
+    medicosAgendamentoCarregados =
+      Array.isArray(medicosAgendamento) &&
+      (medicosAgendamento.length > 0 ||
+        Boolean(window.Auth?.current()?.perfil === "medico" && medicosCache.length > 0));
 
     const ativos = medicosCache.filter((m) => m.ativo !== false);
     const listaParaSelect = ativos.length > 0 ? ativos : medicosCache;
@@ -1379,10 +1421,13 @@ async function carregarFilaMedica() {
 function sincronizarModalidadeComMedicoSelecionado(medicoId) {
   const selectModalidade = $("filtro-modalidade-fila");
   if (!selectModalidade || !medicoId || medicoId === "sem_medico") return;
-  if (medicosAgendamentoIds.size === 0) return;
+  if (!medicosAgendamentoCarregados && medicosAgendamentoIds.size === 0) return;
 
   const isMedicoAgendamento = medicosAgendamentoIds.has(Number(medicoId));
   selectModalidade.value = isMedicoAgendamento ? "agendamento" : "urgencia";
+  if (window.Auth?.current()?.perfil === "medico") {
+    selectModalidade.disabled = true;
+  }
 }
 
 $("atualizar-fila")?.addEventListener("click", () => {
