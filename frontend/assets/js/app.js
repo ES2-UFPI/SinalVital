@@ -804,6 +804,17 @@ function formatarNomeMedico(medico) {
 }
 
 function atualizarResumoPacienteSelecionado({ id, nome, motivo, bloqueado = false }) {
+  const registro = $("registro-clinico");
+  if (registro) {
+    registro.hidden = !id || bloqueado;
+    registro.disabled = !id || bloqueado;
+  }
+  if ($("atendimento-vazio")) $("atendimento-vazio").hidden = Boolean(id);
+  if ($("atendimento-titulo")) {
+    $("atendimento-titulo").textContent = id
+      ? bloqueado ? "Atendimento indisponível" : `Atendimento de ${nome || `paciente #${id}`}`
+      : "Seu atendimento";
+  }
   const resumo = $("paciente-selecionado-resumo");
   if (!resumo) return;
   if (!id) {
@@ -1023,7 +1034,9 @@ function selecionarPacienteDaFila({ pacienteId, medicoId, pacienteNome, motivo }
   setFeedback(feedbackNode, msg, "info");
   Feedback.info(msg);
 
-  if (inputDiagnostico) {
+  if ($("atendimento-titulo")) {
+    $("atendimento-titulo").focus();
+  } else if (inputDiagnostico) {
     inputDiagnostico.focus();
   }
 }
