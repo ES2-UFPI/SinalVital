@@ -51,6 +51,7 @@ class AtendimentoAdminResposta(BaseModel):
     etapa: str
     medico_id: int | None = None
     medico_nome: str | None = None
+    medico_especialidade: str | None = None
     data: str
 
 

@@ -16,6 +16,21 @@
     triagem:"Triagem",consulta:"Consulta registrada"};
   const etapaLabel = {triagem:"Triagem realizada",aguardando:"Aguardando",em_atendimento:"Em atendimento",
     agendado:"Agendado",atendido:"Atendido",cancelado:"Cancelado"};
+  const etapasPorTipo = {
+    urgencia:["todos","aguardando","atendido","cancelado"],
+    agendamento:["todos","agendado","atendido","cancelado"],
+    consulta:["todos","atendido"],
+    triagem:["todos","triagem"],
+  };
+  function ajustarEtapas() {
+    const permitidas = etapasPorTipo[byId("admin-filtro-tipo").value];
+    const select = byId("admin-etapa");
+    for (const option of select.options) {
+      option.disabled = Boolean(permitidas && !permitidas.includes(option.value));
+      option.hidden = option.disabled;
+    }
+    if (permitidas && !permitidas.includes(select.value)) select.value = "todos";
+  }
   function node(tag, text, classe) {
     const element = document.createElement(tag);
     if (text !== undefined) element.textContent = text;
@@ -39,6 +54,7 @@
     byId("admin-pacientes-lista").replaceChildren();
     medicoForm.reset(); loginForm.reset();
     byId("admin-filtros").reset();
+    ajustarEtapas();
     ajustarAgenda();
     aviso(""); byId("admin-password").focus();
   }
@@ -89,8 +105,12 @@
         const itens = node("ul", undefined, "admin-vinculos");
         for (const item of paciente.atendimentos) {
           const registro = node("li");
+          const especialidade = item.medico_especialidade?.replace(/_/g," ");
+          const profissional = item.medico_nome
+            ? `${item.medico_nome}${especialidade ? ` · ${especialidade}` : ""}`
+            : "Sem médico vinculado";
           registro.append(node("strong",`${tipoLabel[item.tipo]} · ${etapaLabel[item.etapa] || item.etapa}`),
-            node("p",`${item.medico_nome || "Sem médico vinculado"} · ${formatarData(item.data)}`));
+            node("p",`${profissional} · ${formatarData(item.data)}`));
           itens.append(registro);
         }
         card.append(itens);
@@ -121,8 +141,10 @@
   async function carregarPacientes({automatico = false} = {}) {
     if (!podeAtualizar()) return;
     if (!automatico) {
+      ajustarEtapas();
       filtrosPacientes = new URLSearchParams({
         nome:byId("admin-busca").value.trim(), etapa:byId("admin-etapa").value,
+        tipo:byId("admin-filtro-tipo").value,
       }).toString();
     }
     if (carregandoPacientes) { repetirPacientes = true; return; }
@@ -212,9 +234,11 @@
   byId("admin-filtros").addEventListener("submit", event=>{
     event.preventDefault(); executar(event.currentTarget.querySelector('[type="submit"]'),carregarPacientes);
   });
-  byId("admin-etapa").addEventListener("change", ()=>{
-    executar(byId("admin-filtros").querySelector('[type="submit"]'),carregarPacientes);
-  });
+  for (const id of ["admin-etapa", "admin-filtro-tipo"]) {
+    byId(id).addEventListener("change", ()=>{
+      executar(byId("admin-filtros").querySelector('[type="submit"]'),carregarPacientes);
+    });
+  }
   for (const nome of ["medicos","pacientes"]) {
     byId(`aba-${nome}`).addEventListener("click",event=>{
       selecionarAba(nome);
@@ -229,4 +253,5 @@
     });
   }
   ajustarAgenda();
+  ajustarEtapas();
 })();

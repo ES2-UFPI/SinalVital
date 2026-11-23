@@ -14,6 +14,12 @@ function element(tag='div') {
 function browser() {
   const nodes=new Map();const get=id=>{if(!nodes.has(id))nodes.set(id,element());return nodes.get(id);};
   get('admin-area').hidden=true;get('admin-tipo').value='urgencia';get('admin-etapa').value='todos';
+  get('admin-filtro-tipo').value='todos';
+  const selectEtapa=fs.readFileSync('frontend/pages/admin.html','utf8').match(/<select id="admin-etapa">([\s\S]*?)<\/select>/)[1];
+  get('admin-etapa').options=Array.from(selectEtapa.matchAll(/<option value="([^"]+)"/g),m=>({value:m[1],disabled:false}));
+  get('admin-filtros').reset=()=>{
+    get('admin-etapa').value='todos';get('admin-filtro-tipo').value='todos';get('admin-busca').value='';
+  };
   const docEvents={};const timers=new Map();let nextTimer=0;let authenticated=false;
   const document={hidden:false,getElementById:get,createElement:element,
     addEventListener(event,cb){docEvents[event]=cb;}};
@@ -39,13 +45,75 @@ function paciente(etapa){return [{id:1,nome:'Paciente exemplo',atendimentos:[
 ]}];}
 const texto=node=>[node.textContent||'',...node.children.map(texto)].join(' ');
 
+test('cada tipo mostra somente as etapas compativeis',async()=>{
+  const b=browser();await b.enter();
+  const permitidas={
+    urgencia:['todos','aguardando','atendido','cancelado'],
+    agendamento:['todos','agendado','atendido','cancelado'],
+    consulta:['todos','atendido'],triagem:['todos','triagem'],
+  };
+  for(const [tipo,etapas] of Object.entries(permitidas)){
+    b.get('admin-filtro-tipo').value=tipo;await b.event('admin-filtro-tipo','change');
+    assert.deepEqual(b.get('admin-etapa').options.filter(o=>!o.hidden).map(o=>o.value),etapas);
+  }
+  b.get('admin-filtro-tipo').value='todos';await b.event('admin-filtro-tipo','change');
+  assert.ok(b.get('admin-etapa').options.every(o=>!o.disabled));
+  assert.ok(b.get('admin-etapa').options.every(o=>!o.hidden));
+});
+
+test('etapa incompativel volta para todos antes da busca e permanece no timer',async()=>{
+  const b=browser();await b.enter();
+  b.get('admin-etapa').value='agendado';
+  b.get('admin-filtro-tipo').value='urgencia';await b.event('admin-filtro-tipo','change');
+  assert.equal(b.get('admin-etapa').value,'todos');
+  assert.equal(new URLSearchParams(b.calls.at(-1).split('?')[1]).get('etapa'),'todos');
+  await b.tick();
+  assert.equal(new URLSearchParams(b.calls.at(-1).split('?')[1]).get('etapa'),'todos');
+});
+
+test('sair restaura todas as opcoes de etapa para o proximo acesso',async()=>{
+  const b=browser();await b.enter();
+  b.get('admin-filtro-tipo').value='consulta';await b.event('admin-filtro-tipo','change');
+  await b.event('admin-sair');await b.enter();
+  assert.equal(b.get('admin-filtro-tipo').value,'todos');
+  assert.ok(b.get('admin-etapa').options.every(o=>!o.disabled));
+  assert.ok(b.get('admin-etapa').options.every(o=>!o.hidden));
+});
+
+test('tipo combina com etapa e nome e persiste no ciclo automatico',async()=>{
+  const b=browser();await b.enter();
+  b.get('admin-busca').value='Paciente';b.get('admin-etapa').value='aguardando';
+  b.get('admin-filtro-tipo').value='urgencia';await b.event('admin-filtro-tipo','change');
+  let parametros=new URLSearchParams(b.calls.at(-1).split('?')[1]);
+  assert.equal(parametros.get('tipo'),'urgencia');
+  assert.equal(parametros.get('etapa'),'aguardando');
+  assert.equal(parametros.get('nome'),'Paciente');
+  await b.tick();assert.equal(new URLSearchParams(b.calls.at(-1).split('?')[1]).get('tipo'),'urgencia');
+  b.get('admin-filtro-tipo').value='todos';await b.event('admin-filtro-tipo','change');
+  assert.equal(new URLSearchParams(b.calls.at(-1).split('?')[1]).get('tipo'),'todos');
+});
+
+test('registro mostra especialidade do medico e suporta atendimento sem medico',async()=>{
+  const b=browser();
+  const dados=paciente('aguardando');
+  dados[0].atendimentos[0].medico_especialidade='clinica_geral';
+  b.setResponse(async()=>dados);await b.enter();
+  assert.match(texto(b.get('admin-pacientes-lista')),/Helena · clinica geral ·/);
+  dados[0].atendimentos[0].medico_nome=null;
+  dados[0].atendimentos[0].medico_especialidade=null;
+  await b.tick();
+  const exibido=texto(b.get('admin-pacientes-lista'));
+  assert.match(exibido,/Sem médico vinculado/);
+  assert.doesNotMatch(exibido,/null|undefined|clinica geral/);
+});
+
 test('trocar etapa aplica filtro imediatamente e o mantem na atualizacao automatica',async()=>{
   const b=browser();await b.enter();
-  b.get('admin-etapa').value='em_atendimento';
+  b.get('admin-etapa').value='agendado';
   await b.event('admin-etapa','change');
-  assert.match(b.calls.at(-1),/etapa=em_atendimento/);
+  assert.match(b.calls.at(-1),/etapa=agendado/);
   await b.tick();
-  assert.match(b.calls.at(-1),/etapa=em_atendimento/);
+  assert.match(b.calls.at(-1),/etapa=agendado/);
   b.get('admin-etapa').value='todos';await b.event('admin-etapa','change');
   assert.match(b.calls.at(-1),/etapa=todos/);
 });
