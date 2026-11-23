@@ -54,8 +54,9 @@ clínico continua no prontuário do painel médico. Não existem operações par
 editar ou excluir pacientes/atendimentos nesta área.
 
 Filtros de etapa: `todos`, `sem_atendimento`, `triagem`, `aguardando`,
-`em_atendimento`, `agendado`, `atendido`, `cancelado`. O filtro seleciona os
-pacientes que possuem a etapa, mas preserva todos os seus vínculos no resultado.
+`em_atendimento`, `agendado`, `atendido`, `cancelado`. Ao trocar a etapa, o painel
+aplica a busca imediatamente e mostra apenas os vínculos dessa etapa. A opção
+**Todas as etapas** volta a mostrar o histórico completo, sem excluir registros.
 Uma urgência concluída e sua consulta são registros distintos e podem aparecer
 juntos. A leitura administrativa não recalcula scores nem aloca pacientes.
 

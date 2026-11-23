@@ -212,6 +212,9 @@
   byId("admin-filtros").addEventListener("submit", event=>{
     event.preventDefault(); executar(event.currentTarget.querySelector('[type="submit"]'),carregarPacientes);
   });
+  byId("admin-etapa").addEventListener("change", ()=>{
+    executar(byId("admin-filtros").querySelector('[type="submit"]'),carregarPacientes);
+  });
   for (const nome of ["medicos","pacientes"]) {
     byId(`aba-${nome}`).addEventListener("click",event=>{
       selecionarAba(nome);

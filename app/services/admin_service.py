@@ -42,7 +42,9 @@ def listar_pacientes_atendimentos(db: Session, nome: str, etapa: str):
         itens = sorted(por_paciente[paciente.id], key=lambda item: (item['data'], item['tipo'], item['id']), reverse=True)
         if etapa == 'sem_atendimento' and itens:
             continue
-        if etapa not in ('todos', 'sem_atendimento') and not any(i['etapa'] == etapa for i in itens):
-            continue
+        if etapa not in ('todos', 'sem_atendimento'):
+            itens = [item for item in itens if item['etapa'] == etapa]
+            if not itens:
+                continue
         resultado.append({'id': paciente.id, 'nome': paciente.nome, 'atendimentos': itens})
     return resultado
