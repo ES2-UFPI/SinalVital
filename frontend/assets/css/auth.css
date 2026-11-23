@@ -18,3 +18,44 @@
     margin: 0;
     accent-color: var(--accent);
 }
+
+/* Seleção de perfil com controles nativos e foco visível. */
+[data-page="login"].patient-ui .shell { grid-template-columns:minmax(0,1fr); max-width:1120px; }
+[data-page="login"].patient-ui .sidebar { display:none; }
+[data-page="login"].patient-ui main { padding:40px 32px; }
+[data-page="login"] .login-back { display:inline-block; font-size:.8rem; margin-bottom:24px; }
+[data-page="login"].patient-ui .page-heading { margin-bottom:32px; }
+[data-page="login"].patient-ui .content-grid { grid-template-columns:minmax(0,1.5fr) minmax(240px,.85fr); gap:24px; }
+[data-page="login"].patient-ui .profile-choice { border:0; margin:0 0 28px; padding:0; min-width:0; }
+[data-page="login"] .profile-choice legend { font-size:.9rem; font-weight:650; margin-bottom:16px; padding:0; }
+[data-page="login"] .profile-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+[data-page="login"].patient-ui .profile-option { display:flex; align-items:flex-start; gap:12px; border:1px solid var(--line); padding:18px; border-radius:12px; margin:0; background:var(--panel); transition:background-color .18s,border-color .18s; }
+[data-page="login"] .profile-option:has(input:checked) { background:var(--accent-soft) !important; border-color:var(--accent) !important; }
+[data-page="login"] .profile-option:has(input:focus-visible) { outline:3px solid var(--focus); outline-offset:3px; }
+[data-page="login"].patient-ui .profile-option input { width:24px; height:24px; min-height:24px; margin:2px 0 0; flex-shrink:0; }
+[data-page="login"] .profile-option strong { display:block; font-size:.95rem; font-weight:700; color:var(--navy); }
+[data-page="login"] .profile-option small { display:block; font-size:.75rem; color:var(--muted); line-height:1.6; margin-top:8px; font-weight:400; }
+[data-page="login"] #login-submit { width:100%; }
+[data-page="login"] .login-register { padding-top:24px; margin-top:24px; border-top:1px solid var(--line); }
+[data-page="login"] .login-register p { font-size:.83rem; margin:0 0 14px; color:var(--muted); }
+[data-page="login"] .login-register .button { width:100%; margin:0; font-size:.82rem; }
+[data-page="login"].patient-ui .login-guide { border-top:3px solid var(--navy); }
+[data-page="login"] .login-guide ol { list-style:none; counter-reset:acesso; padding:0; margin:24px 0; display:grid; gap:20px; }
+[data-page="login"] .login-guide li { counter-increment:acesso; position:relative; padding-left:38px; }
+[data-page="login"] .login-guide li::before { content:counter(acesso); position:absolute; left:0; top:0; display:grid; place-items:center; width:26px; height:26px; font-size:.72rem; color:var(--navy); background:var(--bg); border-radius:50%; border:1px solid var(--line); }
+[data-page="login"] .login-guide li strong { display:block; font-size:.83rem; margin-bottom:4px; }
+[data-page="login"] .login-guide li p { margin:0; font-size:.78rem; }
+[data-page="login"].high-contrast .profile-option:has(input:checked) { background:#252500 !important; border-color:#ffdf00 !important; }
+[data-page="login"].high-contrast .profile-option strong { color:#ffdf00; }
+[data-page="login"].high-contrast .profile-option small { color:#fff; }
+[data-page="login"].high-contrast .login-guide li::before { background:#101010; color:#ffdf00; border-color:#fff; }
+@media(max-width:800px) {
+  [data-page="login"].patient-ui .content-grid { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:600px) {
+  [data-page="login"].patient-ui main { padding:24px 16px; }
+  [data-page="login"] .profile-options { grid-template-columns:minmax(0,1fr); }
+}
+@media(prefers-reduced-motion:reduce) {
+  [data-page="login"] .profile-option { transition:none; }
+}
