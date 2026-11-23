@@ -63,7 +63,7 @@ def test_pacientes_sem_atendimento_sao_listados(client, db_session):
     assert lista[0]['atendimentos']==[]
 
 
-def test_paciente_tem_varios_atendimentos_e_filtros_nao_os_apagam(client, db_session):
+def test_filtro_de_etapa_exibe_apenas_vinculos_correspondentes_sem_apagar_historico(client, db_session):
     from app.database.models import Paciente, Medico, Triagem, ItemFila, Agendamento, Consulta
     paciente = Paciente(nome='Raimundo', email='admin.raimundo@example.com')
     medico = Medico(nome='Helena', especialidade='cardiologia', ativo=True)
@@ -83,12 +83,34 @@ def test_paciente_tem_varios_atendimentos_e_filtros_nao_os_apagam(client, db_ses
     pacientes = resposta.json()
     assert len(pacientes)==1
     atendimentos=pacientes[0]['atendimentos']
-    assert {a['tipo'] for a in atendimentos} == {'urgencia','agendamento','consulta'}
-    assert {a['etapa'] for a in atendimentos} == {'aguardando','agendado','atendido'}
+    assert {a['tipo'] for a in atendimentos} == {'agendamento'}
+    assert {a['etapa'] for a in atendimentos} == {'agendado'}
+    for etapa in ['aguardando', 'atendido']:
+        filtrados = client.get(f'/admin/pacientes?etapa={etapa}', headers=HEADERS).json()
+        assert len(filtrados) == 1
+        assert {a['etapa'] for a in filtrados[0]['atendimentos']} == {etapa}
+    assert client.get('/admin/pacientes?etapa=cancelado', headers=HEADERS).json() == []
+    historico = client.get('/admin/pacientes?nome=raimundo&etapa=todos', headers=HEADERS).json()
+    assert {a['tipo'] for a in historico[0]['atendimentos']} == {'urgencia','agendamento','consulta'}
     assert all(a['medico_nome']=='Helena' for a in atendimentos)
+    assert all(a['medico_especialidade']=='cardiologia' for a in historico[0]['atendimentos'])
     for texto in ['Diagnóstico privado','Conduta privada','Anamnese privada','Motivo privado','Relato privado']:
         assert texto not in resposta.text
     assert len(client.get('/admin/pacientes?etapa=sem_atendimento',headers=HEADERS).json()) == 1
+    for tipo in ['urgencia', 'agendamento', 'consulta']:
+        filtrados = client.get(f'/admin/pacientes?tipo={tipo}', headers=HEADERS).json()
+        assert len(filtrados) == 1
+        assert {a['tipo'] for a in filtrados[0]['atendimentos']} == {tipo}
+    combinados = client.get('/admin/pacientes?nome=raimundo&tipo=urgencia&etapa=aguardando', headers=HEADERS).json()
+    assert len(combinados) == 1
+    assert len(combinados[0]['atendimentos']) == 1
+    assert client.get('/admin/pacientes?tipo=urgencia&etapa=agendado', headers=HEADERS).json() == []
+    assert client.get('/admin/pacientes?tipo=consulta&etapa=sem_atendimento', headers=HEADERS).json() == []
+    assert client.get('/admin/pacientes?tipo=triagem', headers=HEADERS).json() == []
+
+
+def test_tipo_de_atendimento_invalido_e_rejeitado(client):
+    assert client.get('/admin/pacientes?tipo=invalido', headers=HEADERS).status_code == 422
 
 
 def test_painel_separado_sem_link_publico(client):
@@ -115,9 +137,10 @@ def test_triagem_sem_fila_e_exibida_sem_relato_clinico(client, db_session):
     db_session.add(paciente); db_session.commit()
     db_session.add(Triagem(paciente_id=paciente.id,texto_sintomas='Relato reservado'))
     db_session.commit()
-    resposta=client.get('/admin/pacientes?etapa=triagem',headers=HEADERS)
+    resposta=client.get('/admin/pacientes?etapa=triagem&tipo=triagem',headers=HEADERS)
     assert resposta.status_code==200
     item=resposta.json()[0]['atendimentos'][0]
     assert item['tipo']=='triagem' and item['etapa']=='triagem'
     assert item['medico_nome'] is None
+    assert item['medico_especialidade'] is None
     assert 'Relato reservado' not in resposta.text

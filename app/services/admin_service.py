@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database.models import Paciente, Medico, ItemFila, Agendamento, Consulta, Triagem
 
 
-def listar_pacientes_atendimentos(db: Session, nome: str, etapa: str):
+def listar_pacientes_atendimentos(db: Session, nome: str, etapa: str, tipo: str = 'todos'):
     query = db.query(Paciente)
     if nome:
         query = query.filter(Paciente.nome.icontains(nome, autoescape=True))
@@ -12,15 +12,17 @@ def listar_pacientes_atendimentos(db: Session, nome: str, etapa: str):
     if not pacientes:
         return []
     ids = [p.id for p in pacientes]
-    medicos = {m.id: m.nome for m in db.query(Medico).all()}
+    medicos = {m.id: m for m in db.query(Medico).all()}
     por_paciente = defaultdict(list)
     triagens_vinculadas = set()
 
     def adicionar(registro, tipo, status, data):
         medico_id = getattr(registro, 'medico_id', None)
+        medico = medicos.get(medico_id)
         por_paciente[registro.paciente_id].append({
             'id': registro.id, 'tipo': tipo, 'etapa': status,
-            'medico_id': medico_id, 'medico_nome': medicos.get(medico_id),
+            'medico_id': medico_id, 'medico_nome': medico.nome if medico else None,
+            'medico_especialidade': medico.especialidade if medico else None,
             'data': data.isoformat(),
         })
 
@@ -42,7 +44,13 @@ def listar_pacientes_atendimentos(db: Session, nome: str, etapa: str):
         itens = sorted(por_paciente[paciente.id], key=lambda item: (item['data'], item['tipo'], item['id']), reverse=True)
         if etapa == 'sem_atendimento' and itens:
             continue
-        if etapa not in ('todos', 'sem_atendimento') and not any(i['etapa'] == etapa for i in itens):
-            continue
+        if tipo != 'todos':
+            itens = [item for item in itens if item['tipo'] == tipo]
+            if not itens:
+                continue
+        if etapa not in ('todos', 'sem_atendimento'):
+            itens = [item for item in itens if item['etapa'] == etapa]
+            if not itens:
+                continue
         resultado.append({'id': paciente.id, 'nome': paciente.nome, 'atendimentos': itens})
     return resultado

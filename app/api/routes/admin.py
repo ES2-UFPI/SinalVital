@@ -52,6 +52,7 @@ def listar_pacientes(
     nome: str = Query(default='', max_length=120),
     etapa: Literal['todos', 'sem_atendimento', 'triagem', 'aguardando', 'em_atendimento',
                    'agendado', 'atendido', 'cancelado'] = 'todos',
+    tipo: Literal['todos', 'urgencia', 'agendamento', 'consulta', 'triagem'] = 'todos',
     db: Session = Depends(get_db),
 ):
-    return listar_pacientes_atendimentos(db, nome.strip(), etapa)
+    return listar_pacientes_atendimentos(db, nome.strip(), etapa, tipo)

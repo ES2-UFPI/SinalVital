@@ -391,7 +391,8 @@ triagemForm?.addEventListener("submit", (event) => {
 
       const again = element("a", "Consultar meu histórico →", "button secondary");
       again.href = `/pages/historico.html?paciente=${encodeURIComponent(pacienteId)}`;
-      result.append(again);
+      const acoes = element("div", undefined, "patient-actions");
+      acoes.append(again);
 
       const linkAgendamento = element(
         "a",
@@ -406,15 +407,8 @@ triagemForm?.addEventListener("submit", (event) => {
         motivo: data.justificativa || data.texto_sintomas || "",
       });
       linkAgendamento.href = `/pages/agendamento.html?${paramsAgendamento.toString()}`;
-      result.append(linkAgendamento);
-
-      const linkMedico = element(
-        "a",
-        "Abrir painel médico →",
-        "button secondary btn",
-      );
-      linkMedico.href = `/pages/medico.html?paciente=${encodeURIComponent(pacienteId)}`;
-      result.append(linkMedico);
+      acoes.append(linkAgendamento);
+      result.append(acoes);
 
       result.hidden = false;
     }

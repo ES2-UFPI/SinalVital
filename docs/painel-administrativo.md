@@ -44,20 +44,47 @@ uma autenticação administrativa completa para produção.
 
 ## Pacientes e atendimentos
 
-`GET /admin/pacientes?nome=&etapa=todos` lista pacientes por nome e os vínculos
+`GET /admin/pacientes?nome=&etapa=todos&tipo=todos` lista pacientes por nome e os vínculos
 separados de urgência, agendamento e consultas registradas. Triagens ainda sem
 vínculo também são exibidas. Nenhum paciente recebe um único status agregado.
 
-O painel mostra nome, ID, tipo/etapa do vínculo, médico e data. Não expõe relato,
+O painel mostra nome, ID, tipo/etapa do vínculo, médico, especialidade e data. Não expõe relato,
 motivo clínico, diagnóstico, conduta ou anamnese nessas respostas. O conteúdo
 clínico continua no prontuário do painel médico. Não existem operações para
 editar ou excluir pacientes/atendimentos nesta área.
 
-Filtros de etapa: `todos`, `sem_atendimento`, `triagem`, `aguardando`,
-`em_atendimento`, `agendado`, `atendido`, `cancelado`. O filtro seleciona os
-pacientes que possuem a etapa, mas preserva todos os seus vínculos no resultado.
+Filtros de etapa disponíveis no painel: `todos`, `sem_atendimento`, `triagem`,
+`aguardando`, `agendado`, `atendido`, `cancelado`. Ao trocar a etapa, o painel
+aplica a busca imediatamente e mostra apenas os vínculos dessa etapa. A opção
+**Todas as etapas**, junto de **Todos os tipos**, volta a mostrar o histórico completo,
+sem excluir registros. Os tipos disponíveis são `todos`, `urgencia`, `agendamento`,
+`consulta` e `triagem`. Nome, tipo e etapa são combinados no mesmo vínculo:
+**Urgência + Aguardando** retorna apenas urgências aguardando atendimento.
+Trocar o tipo também aplica a busca imediatamente e oculta as etapas
+incompatíveis. Se a etapa selecionada ficar incompatível, ela volta para
+**Todas as etapas** antes da consulta. **Todos os tipos** habilita todas as etapas.
+Urgência permite Aguardando, Atendido e Cancelado; Agendamento permite Agendado,
+Atendido e Cancelado; Consulta registrada permite Atendido; Triagem permite
+Triagem realizada. Todos permitem também Todas as etapas. Sem atendimento fica
+disponível apenas com Todos os tipos. Consultas diretas à API com combinações
+sem correspondência continuam retornando uma lista vazia.
 Uma urgência concluída e sua consulta são registros distintos e podem aparecer
 juntos. A leitura administrativa não recalcula scores nem aloca pacientes.
+
+### Atualização dos atendimentos
+
+A aba **Pacientes e atendimentos** consulta os dados automaticamente a cada
+10 segundos, contados após o término da requisição anterior. A atualização mantém
+os filtros aplicados e os cartões de pacientes abertos. Editar o campo de busca
+não altera o filtro até usar **Buscar pacientes**. Se não houver mudanças nos
+dados, os cartões não são reconstruídos.
+
+A consulta automática pausa na aba Médicos, quando a página fica oculta e ao
+sair da administração. Ao voltar à página visível, os dados são consultados
+novamente. Não há requisições de pacientes sobrepostas; resultados antigos são
+descartados após troca de filtro, aba ou encerramento do acesso. Se o serviço
+falhar temporariamente, os últimos dados ficam visíveis, com aviso e nova
+tentativa automática. O horário da última atualização aparece acima da lista.
 
 ## Testes
 
@@ -65,6 +92,9 @@ juntos. A leitura administrativa não recalcula scores nem aloca pacientes.
   duplicidade, cadastro integrado ao login e vínculos simultâneos do paciente.
 - `tests/frontend/admin-api.test.cjs`: header de acesso, limpeza da senha,
   resposta atrasada após sair e erro de configuração.
+- `tests/frontend/admin-refresh.test.cjs`: atualização do status, cartões abertos,
+  filtros, pausa e retomada, respostas antigas, falhas temporárias e busca
+  enfileirada durante a atualização automática.
 - O pytest executa os testes JavaScript através de `tests/test_auth_javascript.py`;
   requer Node.js no PATH, como os testes de perfil já existentes.
 
