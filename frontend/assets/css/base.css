@@ -1048,6 +1048,21 @@ body.high-contrast .notice {
     margin-top: 8px
 }
 
+.patient-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.patient-actions > .button {
+    margin: 0;
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+}
+
 .feedback:empty {
     display: none
 }
