@@ -1,313 +1,331 @@
 # SinalVital
 
-## Matching de médicos — [008-02] (#41)
+O **SinalVital** é um protótipo acadêmico de organização do atendimento em saúde, desenvolvido na disciplina de Engenharia de Software. Ele conecta o relato de sintomas do paciente, a classificação inicial, o encaminhamento ao médico e o registro da consulta em um histórico de acompanhamento.
 
-`MotorPriorizacao.escolher_medico(especialidade, medicos, carga_atual)`, em
-`app/domain/queue/motor_priorizacao.py`, seleciona somente médicos ativos da
-especialidade indicada, com carga inferior à capacidade simultânea. A menor
-carga absoluta vence; em caso de empate, vence o menor ID, independentemente
-da ordem da lista. A especialidade deve usar o mesmo identificador do modelo,
-como `cardiologia`, `oftalmologia` ou `clinica_geral`.
+O projeto possui três experiências: **paciente**, **médico** e **administração**. As funcionalidades descritas abaixo correspondem ao que está implementado nesta versão.
 
-`carga_atual` é um mapa `{id_medico: quantidade_atual}` de contagens não negativas.
-IDs ausentes contam como zero; entradas referentes a outros médicos são ignoradas.
-O método retorna o próprio médico selecionado ou `None` quando não há vaga.
-Na integração dos endpoints da fila (#44), `None` deve ser apresentado como
-`AGUARDANDO_VAGA_NA_ESPECIALIDADE`, cujo valor é `"Aguardando vaga na especialidade"`.
+> Ambiente de demonstração: utilize dados fictícios. A classificação inicial serve para apresentar o fluxo do sistema; não constitui diagnóstico nem substitui avaliação médica.
 
-```python
-from app.database.models import Medico
-from app.domain.queue.motor_priorizacao import (
-    MotorPriorizacao, AGUARDANDO_VAGA_NA_ESPECIALIDADE,
-)
+## Conheça as funcionalidades
 
-medicos = [
-    Medico(id=1, nome="Helena", especialidade="cardiologia",
-           capacidade_simultanea=2, ativo=True),
-]
-medico = MotorPriorizacao.escolher_medico("cardiologia", medicos, {1: 1})
-estado = medico.nome if medico is not None else AGUARDANDO_VAGA_NA_ESPECIALIDADE
-```
+- [Perfis e entrada no sistema](#perfis-e-entrada-no-sistema)
+- [Funcionalidades do paciente](#funcionalidades-do-paciente)
+- [Organização e encaminhamento do atendimento](#organização-e-encaminhamento-do-atendimento)
+- [Painel médico](#painel-médico)
+- [Painel administrativo](#painel-administrativo)
+- [Experiência de uso e acessibilidade](#experiência-de-uso-e-acessibilidade)
+- [Roteiro para apresentação](#roteiro-para-apresentação)
+- [Como abrir a demonstração](#como-abrir-a-demonstração)
+- [Escopo e limitações atuais](#escopo-e-limitações-atuais)
+- [Qualidade e documentação complementar](#qualidade-e-documentação-complementar)
 
-Esta operação não consulta o banco, modifica as cargas nem reserva vagas. A
-camada que aloca o atendimento deve obter cargas atuais e controlar concorrência.
-Nenhuma rota nova foi adicionada nesta issue. Os 15 cenários TDD estão em
-`tests/unit/test_escolher_medico.py`, incluindo uso com o modelo SQLAlchemy,
-capacidade atingida/excedida, menor carga, empate, inativos e ausência de vaga.
-Para executá-los:
+## Perfis e entrada no sistema
 
-```powershell
-.\venv\Scripts\python.exe -m pytest tests/unit/test_escolher_medico.py -q
-```
+A tela de entrada apresenta dois cartões de seleção. Cada um explica o que aquele perfil pode fazer. Ao trocar de perfil, a orientação de identificação e o botão de entrada acompanham a escolha.
 
-O workflow existente os executa junto à suíte nos PRs destinados à `dev`.
+| Perfil | Como entrar | O que encontra |
+| --- | --- | --- |
+| Paciente | Número do cadastro ou e-mail cadastrado | Relato de sintomas, agendamento, fila de espera, histórico e consulta dos próprios dados. |
+| Médico | Número do cadastro profissional, com o médico ativo | Fila dos pacientes vinculados ao profissional, prontuário e registro de consultas. |
+| Administração | Página separada e senha administrativa configurada | Cadastro e listagem de médicos, consulta de pacientes e acompanhamento dos vínculos de atendimento. |
 
-## Médicos — [008-01] (#40)
+O cadastro de paciente está disponível para visitantes. Depois da entrada, o paciente encontra **Meus dados** em lugar da opção de novo cadastro. O médico é direcionado ao painel clínico.
 
-O modelo `Medico` está em `app/database/models/medico.py`. A tabela `medicos`
-contém `id`, `nome`, `especialidade`, `capacidade_simultanea` e `ativo`.
-Por padrão, a capacidade é 1 e o médico está ativo. A capacidade deve ser positiva.
-A tabela é criada na inicialização da API ou na execução do seed; não é preciso
-apagar o banco existente para acrescentá-la.
+A identificação de paciente e médico vale para a aba utilizada. **Sair / Trocar Perfil** encerra essa identificação e retorna à tela de entrada. A administração possui entrada e saída próprias; recarregar a página exige informar sua senha novamente.
 
-Para popular os pacientes e os três médicos fictícios de demonstração:
+## Funcionalidades do paciente
+
+### Cadastro
+
+O paciente informa **nome completo** e **e-mail**. Pode acrescentar **idade** e **condição crônica**, utilizadas no contexto do atendimento e nas regras de prioridade de agendamentos.
+
+O sistema valida o preenchimento e impede cadastros com e-mail já utilizado. Após salvar, apresenta o número do paciente. Esse número ou o e-mail pode ser utilizado para entrar no perfil de paciente.
+
+### Página inicial personalizada
+
+Após a entrada, a página inicial recebe o paciente pelo nome:
+
+**“Olá, [nome]! Como você está hoje?”**
+
+O destaque principal permite relatar sintomas. Os cartões de acesso levam a **Meus dados**, **Relatar sintomas**, **Agendar consulta**, **Meu histórico** e **Fila de espera**.
+
+As ações do painel médico não aparecem como opções do paciente.
+
+### Meus dados
+
+Apresenta as informações do cadastro vinculado ao perfil identificado:
+
+- Número do paciente.
+- Nome completo e e-mail.
+- Idade e condição crônica, quando informadas.
+
+Campos opcionais ausentes são apresentados como não informados. Esta tela permite **consultar os dados**, sem edição nesta versão.
+
+### Relato de sintomas e classificação inicial
+
+O paciente descreve os sintomas com suas próprias palavras, incluindo quando começaram. Pode usar atalhos como **Dor no peito**, **Falta de ar**, **Dor de cabeça**, **Febre** e **Tontura** para acrescentar termos ao relato.
+
+O relato aceita de **5 a 5.000 caracteres** e fica vinculado ao paciente identificado. Após o envio, o resultado apresenta:
+
+- Nível de urgência, com cor e descrição textual.
+- Justificativa da classificação.
+- Especialidade recomendada.
+- Prioridade, número e data do registro.
+- **Sugestão da IA** de encaminhamento (atendimento de urgência ou agendamento de consulta) com a recomendação textual.
+
+A triagem **não coloca o paciente na fila automaticamente**: quem decide é o paciente. O resultado exibe sempre os dois botões, e a IA apenas destaca o sugerido:
+
+- **Entrar na Fila de Atendimento de Urgência** inclui o paciente na fila somente quando ele clica. Depois disso, a tela mostra o médico alocado e a pontuação, e o botão fica bloqueado para evitar entradas duplicadas. Se a inclusão falhar, o erro é exibido e o botão pode ser usado de novo.
+- **Ir para Agendamento de Consulta** abre o agendamento levando a especialidade, o registro da triagem e a justificativa da IA.
+
+O resultado também oferece **Consultar meu histórico** e, quando aplicável, a orientação de atendimento imediato com o atalho para o SAMU 192. Não oferece acesso ao painel médico.
+
+### Agendamento de consultas
+
+O agendamento permite escolher **especialidade**, **profissional**, **dia disponível** e informar o **motivo da consulta**. Também permite indicar gestação para o cálculo de prioridade.
+
+O fluxo funciona assim:
+
+1. A especialidade selecionada determina quais profissionais disponíveis serão apresentados.
+2. A escolha do profissional mostra os dias de atendimento e as vagas restantes.
+3. Dias lotados ficam indisponíveis para seleção.
+4. O paciente escolhe uma data, informa o motivo e confirma o agendamento.
+5. O sistema apresenta um comprovante com os dados da consulta e a prioridade calculada.
+
+Quando o paciente vem do resultado de uma triagem, o agendamento pode aproveitar o relato, a especialidade e o registro já existente. A página também mostra **Meus agendamentos**, com data, profissional, situação e posição na fila de consultas agendadas.
+
+Se a avaliação identificar emergência ou urgência alta, a tela apresenta uma recomendação e permite escolher entre **entrar na fila de urgência** e **manter o agendamento**. A entrada na urgência cria um vínculo nessa fila; não cancela automaticamente a consulta agendada.
+
+### Fila de espera
+
+O paciente acompanha seus registros na fila de urgência, com informações como:
+
+- Posição na fila e situação do atendimento.
+- Urgência e pontuação de prioridade.
+- Especialidade e médico vinculado, quando disponível.
+- Motivo do encaminhamento e tempo de espera.
+
+A lista permite busca por nome e filtro de situação. No perfil de paciente, a interface exibe somente seus registros e preserva a posição correspondente na fila original.
+
+A página consulta a fila automaticamente a cada **30 segundos** e também oferece **Atualizar**. A posição pode mudar conforme as prioridades e a espera dos demais atendimentos; ela não representa um horário garantido de consulta.
+
+### Histórico de saúde
+
+O histórico reúne **triagens**, **consultas** e outros eventos de atendimento registrados para o paciente. A interface organiza os registros do mais recente para o mais antigo e permite filtrar pelo tipo.
+
+Conforme o registro, apresenta o relato, a classificação de urgência, a especialidade, a justificativa e as informações da consulta, como médico, diagnóstico e conduta.
+
+Uma nova triagem ou consulta passa a compor esse acompanhamento. O paciente pode consultar novamente o histórico para carregar registros recentes.
+
+## Organização e encaminhamento do atendimento
+
+### Duas filas com critérios diferentes
+
+| Fila | Como a prioridade funciona | Como o profissional é definido |
+| --- | --- | --- |
+| Urgência | Considera o nível de urgência e acrescenta um bônus pelo tempo de espera, até um limite. A pontuação é recalculada ao consultar a fila. | Busca um médico ativo da especialidade recomendada, que atenda urgência e tenha capacidade disponível. |
+| Consultas agendadas | Considera urgência, idade, gestação e condição crônica. A prioridade calculada não cresce com o tempo de espera. | O paciente escolhe um profissional que realize agendamentos e uma data com vagas. |
+
+Na fila de urgência, uma pontuação maior corresponde a maior prioridade. A distribuição entre profissionais compatíveis favorece o médico com **menor número de pacientes vinculados**; em empate, utiliza o menor número de cadastro.
+
+A **capacidade simultânea** é o limite de pacientes vinculados ao médico na fila de urgência, aguardando ou em atendimento. Por exemplo, um médico com capacidade 2 pode receber até dois vínculos ativos nessa fila. Esse limite é diferente da quantidade de consultas que ele oferece por dia no agendamento.
+
+Quando não há profissional disponível, o sistema informa **“Aguardando vaga na especialidade”**. Novas consultas à fila tentam alocar os pacientes sem médico quando houver capacidade.
+
+### Classificação dos sintomas
+
+A demonstração funciona por padrão com **regras locais de palavras-chave**, sem depender de um serviço externo. O sistema retorna urgência, especialidade e justificativa para apoiar a apresentação do encaminhamento.
+
+Também existe integração opcional com **Claude**, habilitada pela configuração do ambiente. Nesse modo, o relato é enviado ao serviço externo para classificação. Se a chave estiver ausente, ocorrer falha de comunicação ou a resposta for inválida, o sistema recorre ao classificador local. A integração externa depende de configuração e de crédito no serviço.
+
+O retorno da triagem também inclui a **sugestão de encaminhamento** (`sugestao_fluxo` e `recomendacao`), derivada da urgência e igual nos dois modos de classificação: emergência e alta sugerem o fluxo de **urgência**; média e baixa sugerem **agendamento**. Urgência ausente ou desconhecida sugere urgência. É uma orientação de apoio, sem validação clínica, e não substitui um médico.
+
+## Painel médico
+
+O médico identificado encontra os pacientes vinculados ao seu cadastro, podendo alternar entre **urgência** e **consultas agendadas**. O painel organiza o trabalho em dois blocos: **selecionar o paciente** e **realizar o atendimento**.
+
+### Fila de pacientes
+
+A fila apresenta nome, identificação, prioridade, especialidade e motivo do atendimento, conforme os dados disponíveis. O botão **Atualizar fila** consulta novamente a lista.
+
+Ao clicar em **Selecionar paciente**, o painel preenche a identificação e direciona o foco para o atendimento escolhido. O formulário clínico fica disponível para um paciente com vínculo válido.
+
+### Prontuário evolutivo
+
+Antes de preencher a consulta, o médico pode conferir:
+
+- Nome e identificação do paciente.
+- Idade e condições crônicas informadas.
+- Especialidade e profissional alocado.
+- Motivo do atendimento ou relato de sintomas.
+- Urgência e justificativa da classificação.
+- Histórico de triagens e consultas, inclusive registros de outros médicos.
+
+O histórico fica em um bloco recolhível e pode ser filtrado por consultas ou triagens. Isso mantém o contexto clínico disponível sem ocupar permanentemente todo o espaço de trabalho.
+
+### Registro e conclusão da consulta
+
+O registro contém **anamnese e observações iniciais**, opcionais, além de **diagnóstico** e **conduta**, obrigatórios.
+
+Ao escolher **Salvar e concluir atendimento**, o sistema valida os dados e a compatibilidade do vínculo com o médico, salva a consulta, acrescenta o evento ao histórico e conclui o vínculo ativo correspondente. O painel apresenta a confirmação e atualiza a fila.
+
+**Limpar registro** permite recomeçar o preenchimento e a seleção. Essa ação não exclui consultas já salvas. Em caso de erro no envio, o painel apresenta a mensagem e mantém o conteúdo preenchido para correção.
+
+## Painel administrativo
+
+A administração é uma área separada, sem atalho nos menus públicos. O acesso depende de uma **senha administrativa configurada**, verificada pelo servidor em suas operações.
+
+O painel possui duas abas: **Médicos** e **Pacientes e atendimentos**.
+
+### Cadastro e listagem de médicos
+
+O cadastro organiza as informações em identificação do profissional e configuração do atendimento:
+
+| Informação | Finalidade |
+| --- | --- |
+| Nome e especialidade | Identificar o profissional e sua área de atendimento. |
+| Modalidade | Definir atuação em urgência, consultas agendadas ou ambas. |
+| Capacidade simultânea | Limitar vínculos ativos na fila de urgência. |
+| Dias de atendimento | Informar em quais dias o profissional recebe consultas agendadas. |
+| Limite diário | Definir quantas consultas podem ser agendadas para cada dia de atendimento. |
+| Ativo | Indicar se o profissional está disponível para os fluxos que exigem médico ativo. |
+
+Dias e limite diário são exigidos quando a modalidade inclui agendamento. O sistema valida os dados e impede repetição de nome e especialidade no cadastro administrativo.
+
+Após o cadastro, o painel informa o número do médico. Um novo profissional ativo já pode utilizar esse número para entrar no painel médico. A lista permite conferir modalidade, capacidade e agenda, com atualização manual.
+
+### Consulta de pacientes e atendimentos
+
+A administração pode procurar pacientes pelo nome e combinar filtros de **tipo de atendimento** e **etapa**. Cada paciente possui um cartão expansível, pois uma mesma pessoa pode ter vários registros.
+
+Dentro do cartão, cada vínculo informa **tipo**, **etapa**, **médico**, **especialidade do médico** e **data**. Relatos clínicos, diagnóstico e conduta não são exibidos nessa consulta administrativa.
+
+Os tipos disponíveis são **Todos os tipos**, **Urgência**, **Agendamento**, **Consulta registrada** e **Triagem**. As etapas mostradas acompanham o tipo escolhido:
+
+| Tipo selecionado | Etapas específicas disponíveis |
+| --- | --- |
+| Todos os tipos | Sem atendimento, Triagem realizada, Aguardando, Agendado, Atendido e Cancelado. |
+| Urgência | Aguardando, Atendido e Cancelado. |
+| Agendamento | Agendado, Atendido e Cancelado. |
+| Consulta registrada | Atendido. |
+| Triagem | Triagem realizada. |
+
+Todos permitem a opção **Todas as etapas**. Etapas incompatíveis ficam ocultas; se a escolha anterior deixar de ser compatível, o filtro volta para Todas as etapas antes de consultar.
+
+Tipo e etapa são aplicados ao selecionar; **Buscar pacientes** aplica também o nome informado. Os resultados exibem apenas os vínculos correspondentes à combinação escolhida. Para consultar todos os registros, selecione Todos os tipos e Todas as etapas.
+
+Uma urgência concluída e a consulta registrada são vínculos distintos: ambos podem aparecer no histórico administrativo do mesmo paciente.
+
+### Atualização automática
+
+Na aba de pacientes, o painel consulta alterações automaticamente a cada **10 segundos após o término da consulta anterior**, preservando filtros aplicados e cartões abertos. O aviso mostra o horário da última atualização.
+
+As consultas pausam ao sair da administração, trocar para a aba de médicos ou ocultar a página. Ao voltar à página visível, a atualização é retomada. Se houver falha temporária, os últimos dados continuam exibidos e o painel tenta novamente.
+
+## Experiência de uso e acessibilidade
+
+As telas compartilham a identidade visual do SinalVital, com azul-marinho, vermelho de destaque, superfícies claras e espaçamento entre informações e ações.
+
+- **Layout responsivo:** formulários e cartões se reorganizam para celular; os painéis priorizam uma coluna quando necessário.
+- **Controles de leitura:** A− e A+ ajustam o tamanho dos textos; o alto contraste oferece outra forma de leitura. Essas preferências são lembradas pelo navegador.
+- **Navegação por teclado:** campos, botões, seleção de perfil e abas administrativas mantêm controles acessíveis e indicação de foco.
+- **Informação além da cor:** classificações e situações possuem descrição textual.
+- **Retorno das operações:** carregamento, confirmação, falha e ausência de resultados possuem mensagens próprias.
+- **Ações separadas:** botões mantêm espaçamento e podem quebrar de linha em telas menores.
+- **Identificação do paciente:** nos formulários de sintomas, histórico e agendamento, o perfil identificado preenche o número do paciente e o mantém somente para leitura.
+
+## Roteiro para apresentação
+
+### Jornada de urgência
+
+1. Entre como paciente com um cadastro fictício existente ou crie um novo e faça a entrada.
+2. Confira a saudação e as informações em Meus dados.
+3. Relate sintomas e apresente a classificação, a especialidade e o encaminhamento.
+4. Abra a fila de espera para mostrar posição, situação e profissional vinculado.
+5. Troque para o perfil do médico ao qual o paciente foi alocado.
+6. Selecione o paciente, consulte o prontuário e registre diagnóstico e conduta fictícios.
+7. Volte ao perfil do paciente e consulte o histórico para mostrar a consulta registrada.
+
+### Jornada de consulta agendada
+
+1. Entre como paciente e abra Agendar consulta.
+2. Escolha uma especialidade com profissional disponível, selecione o médico e uma data com vagas.
+3. Informe o motivo e confirme para apresentar o comprovante e a lista de agendamentos.
+4. Entre como o médico escolhido, alterne para a fila de consultas agendadas e selecione o paciente.
+5. Registre a consulta e confira a conclusão do vínculo e o histórico.
+
+### Acompanhamento administrativo
+
+1. Abra a página administrativa e entre com a senha configurada.
+2. Apresente os médicos cadastrados e o formulário de novo profissional.
+3. Abra Pacientes e atendimentos e combine os filtros de tipo e etapa.
+4. Expanda um paciente para mostrar seus vínculos e a especialidade do médico.
+5. Conclua um atendimento em outra aba, pelo perfil médico, e aguarde o ciclo de atualização da administração para observar a mudança.
+
+## Como abrir a demonstração
+
+Se o projeto já estiver instalado, execute na pasta do repositório:
 
 ```powershell
 .\venv\Scripts\python.exe -m app.seed
 .\venv\Scripts\python.exe -m uvicorn app.main:app --reload
 ```
 
-O seed inclui cardiologia, oftalmologia e clínica geral, com nomes fictícios e
-capacidades de 2, 1 e 3 atendimentos simultâneos, respectivamente. Todos começam
-ativos. A repetição do comando identifica cada médico de demonstração por nome
-e especialidade, sem duplicar nem sobrescrever sua capacidade ou estado ativo.
-Se nome ou especialidade forem alterados, o registro original da demonstração
-será inserido novamente. Essa identificação é específica do seed, não uma regra
-de unicidade para todos os médicos. Os pacientes continuam sendo incluídos.
+O primeiro comando prepara os cadastros fictícios de demonstração. O segundo inicia o sistema. Com o servidor ativo, os endereços são:
 
-Abra http://127.0.0.1:8000/medicos no navegador para consultar o JSON, ou use
-`GET /medicos` em http://127.0.0.1:8000/docs. A resposta é `200` com uma lista
-ordenada por nome (ID como desempate); sem médicos cadastrados, retorna `[]`.
-Cada item contém `id`, `nome`, `especialidade`, `capacidade_simultanea` e `ativo`.
-A listagem inclui tanto médicos ativos quanto inativos.
+| Tela | Endereço local |
+| --- | --- |
+| Início | [Abrir SinalVital](http://127.0.0.1:8000/) |
+| Seleção de perfil | [Entrar](http://127.0.0.1:8000/pages/login.html) |
+| Relato de sintomas | [Relatar sintomas](http://127.0.0.1:8000/pages/triagem.html) |
+| Agendamento | [Agendar consulta](http://127.0.0.1:8000/pages/agendamento.html) |
+| Histórico | [Meu histórico](http://127.0.0.1:8000/pages/historico.html) |
+| Fila de urgência | [Fila de espera](http://127.0.0.1:8000/pages/fila.html) |
+| Dados do paciente | [Meus dados](http://127.0.0.1:8000/pages/meus-dados.html) |
+| Painel médico | [Atendimento médico](http://127.0.0.1:8000/pages/medico.html) |
+| Administração | [Painel administrativo](http://127.0.0.1:8000/pages/admin.html) |
 
-```json
-{
-  "id": 1,
-  "nome": "Helena",
-  "especialidade": "cardiologia",
-  "capacidade_simultanea": 2,
-  "ativo": true
-}
-```
+O cadastro de paciente pode ser aberto pela tela de entrada. As telas de atendimento exigem a identificação do perfil correspondente.
 
-O desenvolvimento seguiu TDD: cinco testes foram executados e falharam antes
-da implementação; após a implementação, a suíte completa passou. Os testes em
-`tests/integration/test_medicos.py` cobrem listagem vazia, ordenação e resposta,
-persistência, capacidade positiva, valores padrão, médicos inativos, seed
-repetível e preservação do seed de pacientes. Os testes foram ajustados em um
-novo ciclo Red/Green após a confirmação da descrição completa da issue.
-São descobertos pelo `python -m pytest -q` e pelo workflow existente em PRs
-destinados à `dev`. Esta entrega não inclui cadastro HTTP ou tela de médicos.
-
-Se você executou a primeira versão local da #40 (com CRM), a tabela `medicos`
-antiga não é atualizada pelo `create_all`. Para testar sem alterar os dados
-existentes, use `DATABASE_URL=sqlite:///./sinalvital-medicos-v2.db` no `.env`
-antes de executar o seed e reinicie a API. Nenhum banco anterior é apagado.
-
-Projeto da disciplina de Engenharia de Software. A aplicação principal está em
-`app/`; `tutorial-demo/` é uma demonstração independente dos tutoriais.
-
-## Executar no Windows (PowerShell)
-
-Requer Python 3.10 ou superior. Execute os comandos na raiz do repositório:
+Para a primeira instalação, são necessários **Python 3.12** e as dependências do projeto:
 
 ```powershell
 python -m venv venv
-.\venv\Scripts\python.exe -m pip install -r requirements.txt
-Copy-Item .env.example .env
-.\venv\Scripts\python.exe -m app.seed
-.\venv\Scripts\python.exe -m uvicorn app.main:app --reload
-```
-
-A API cria as tabelas ao iniciar. O seed também cria as tabelas e insere os
-pacientes fictícios Raimundo Nonato e Juscélio. Pode ser executado novamente:
-cadastros com os mesmos e-mails são preservados, sem duplicação ou atualização.
-Os dados de demonstração são fictícios; a idade e a condição de Juscélio ficam
-sem preenchimento. O banco padrão é `sinalvital.db` na pasta de execução;
-para usar outro banco, configure `DATABASE_URL` no `.env`.
-
-Abra http://127.0.0.1:8000/docs para testar o cadastro sem autenticação.
-
-## Cadastro de pacientes — issue #11
-
-`POST /pacientes` recebe, por exemplo:
-
-```json
-{
-  "nome": "Ana Silva",
-  "email": "ana@example.com",
-  "idade": 65,
-  "condicao_cronica": "Hipertensão"
-}
-```
-
-Nome e e-mail são obrigatórios. Idade e condição crônica são opcionais.
-Nome aceita até 120 caracteres, e-mail válido até 120, idade não negativa
-e condição crônica até 200. Espaços nas extremidades são removidos.
-
-- `201`: paciente criado; retorna `id`, os dados cadastrados e `criado_em`.
-- `409`: e-mail já cadastrado.
-- `422`: dados inválidos ou campos obrigatórios ausentes.
-
-## Classificação de sintomas — issue #15 ([005-02])
-
-`app/domain/triagem/strategies/classificador.py` implementa Strategy com a classe abstrata `Classificador`
-e a implementação inicial `MockClassificador`. A `ClassificadorFactory` escolhe
-a implementação lendo `MODO_IA` a cada chamada de `criar()`:
-
-- Ausente ou `mock`: usa o mock.
-- `real`: usa o `ClaudeClassificador` (issue #48, [005-06]), que consulta a API da Anthropic. Veja a seção abaixo.
-- Outro valor (inclusive vazio): gera `ValueError` para indicar configuração inválida.
-
-O `.env` é carregado sem sobrescrever as variáveis do ambiente. O modo aceita
-maiúsculas e espaços nas extremidades. No modo `mock` não são necessárias chave de API ou rede.
-
-```python
-from app.ia_service import ClassificadorFactory
-
-classificador = ClassificadorFactory.criar()
-resultado = classificador.classificar("dor no peito e falta de ar")
-# {"urgencia": "emergencia", "especialidade": "cardiologia",
-#  "justificativa": "Classificado como emergência por mencionar: dor no peito, falta de ar. "
-#                   "Especialidade sugerida: cardiologia (termos: ...)"}
-```
-
-O mock delega para `app/triagem/regras.py` (issue #14): ignora caixa e acentos,
-desconsidera termos negados ("sem dor no peito") e usa os níveis emergência, alta,
-média e baixa (padrão). A estratégia `palavras_chave` da rota de triagem usa a mesma
-busca de termos, mantendo as cores da dev. Retorna `urgencia`, `especialidade` e
-`justificativa`; relatos vazios geram `ValueError`. É uma simulação didática.
-A expansão das regras pertence à [005-03], e a exposição pelo endpoint
-`POST /triagens` à [005-04]. Esta etapa não adiciona uma rota de classificação.
-
-### ClaudeClassificador (`MODO_IA=real`) — issue #48 ([005-06])
-
-`app/domain/triagem/strategies/claude_classificador.py` implementa a mesma interface `Classificador`
-e consome a API de mensagens da Anthropic via `httpx`. A rota e o frontend não mudam: só a
-`ClassificadorFactory` decide a Strategy.
-
-Para usar, no `.env`:
-
-```
-MODO_IA=real
-ANTHROPIC_API_KEY=sua-chave
-# opcional: ANTHROPIC_MODEL=outro-modelo
-```
-
-- O prompt pede um JSON com `urgencia` (`emergencia|alta|media|baixa`), `especialidade`
-  (`cardiologia|oftalmologia|dermatologia|clinica_geral`) e `justificativa`. Valores fora dessas listas
-  tornam a resposta inválida.
-- **Fallback seguro:** chave ausente, falha de rede, timeout (15 s), erro HTTP ou resposta inválida
-  geram um aviso no log e a classificação é feita pelo `MockClassificador`. O log não registra a
-  chave nem o relato do paciente.
-- A chave só existe em variável de ambiente/`.env` (ignorado pelo git). **Nunca** a coloque no código.
-- A chamada à API gera custo na conta Anthropic. Os testes usam `httpx.MockTransport` e não acessam
-  a rede.
-- É uma triagem de apoio, sem validação clínica: não faz diagnóstico nem substitui um médico.
-
-### Few-shot prompting e avaliação
-
-O `ClaudeClassificador` envia, antes do relato real, exemplos resolvidos (relato → JSON esperado) de
-`app/domain/triagem/strategies/exemplos_few_shot.py`. Isso calibra o critério de urgência e fixa o
-formato da resposta. Para voltar ao modo sem exemplos: `ClaudeClassificador(exemplos=())`.
-Os exemplos são decisões de triagem e **precisam ser revisados pelo time e pelo professor**.
-
-Para comparar mock, zero-shot e few-shot nos casos de `scripts/casos_avaliacao.json`:
-
-```powershell
-.\venv\Scripts\python.exe -m scripts.avaliar_classificador               # usa a API: consome crédito
-.\venv\Scripts\python.exe -m scripts.avaliar_classificador --modos mock  # sem custo e sem chave
-```
-
-O script mostra acertos de urgência e de especialidade e a **subtriagem** (urgência subestimada, o
-erro mais grave). O gabarito é um rascunho sem validação clínica e os casos não repetem os exemplos
-(há um teste que garante isso). Com poucos casos e uma única execução, os números são indicativos.
-
-## Testes
-
-Após a integração com a dev, `app/ia_service.py` mantém os imports anteriores
-compatíveis. O cadastro e o histórico estão em `app/api/routes/pacientes.py`;
-o ponto de entrada registra também a rota de triagem trazida pela dev,
-`POST /pacientes/{paciente_id}/triagens`. A configuração SQLAlchemy é única
-em `app/database/database.py`, reexportada por `app.database`.
-
-Os contratos de classificação da dev (`TriageClassifierFactory`, cores e
-prioridades) e da [005-02] (`ClassificadorFactory`, urgência e especialidade)
-foram preservados. A rota de triagem usa o contrato de cores da dev.
-O mock local continua disponível pelo exemplo acima.
-
-Se já existir um banco criado pela versão anterior da tabela `triagens`,
-`create_all` não altera suas colunas. Para testar a nova estrutura sem alterar
-esse banco, configure `DATABASE_URL=sqlite:///./sinalvital-integrado.db` no `.env`
-e execute o seed novamente. Migrações do banco existente precisam ser tratadas
-separadamente.
-
-```powershell
 .\venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+if (-not (Test-Path -LiteralPath .env)) { Copy-Item .env.example .env }
+```
+
+Copie o arquivo de exemplo **somente se ainda não existir um `.env`**, preservando configurações locais. Para a demonstração sem serviço externo, mantenha `MODO_IA=mock`. Para habilitar a administração, defina sua senha em `ADMIN_PASSWORD` e reinicie o servidor. Não publique o `.env`.
+
+Os cadastros de demonstração incluem os pacientes Raimundo Nonato e Juscélio e médicos para urgência e consultas agendadas. Pacientes podem entrar com `raimundo@example.com` ou `juscelio@example.com`. Consulte os números dos médicos na administração; não presuma que os números sejam iguais em bancos já utilizados.
+
+Se um banco antigo apresentar incompatibilidade na triagem, consulte o comando de atualização disponível no projeto, `python -m scripts.atualizar_banco`, que realiza backup antes das alterações suportadas. Essa atualização não substitui uma migração geral para qualquer versão do banco.
+
+## Escopo e limitações atuais
+
+- **Identificação de demonstração:** pacientes e médicos entram sem senha. A separação de telas e os filtros por perfil ocorrem na interface e não constituem autorização completa para acesso direto aos dados do servidor.
+- **Administração separada:** utiliza senha compartilhada verificada pelo servidor. Ainda não há contas administrativas individuais ou gestão de permissões.
+- **Cadastro administrativo:** permite criar e listar médicos; não oferece telas de edição, exclusão ou desativação de um cadastro existente.
+- **Dados do paciente:** são consultáveis, mas ainda não podem ser editados pela tela Meus dados.
+- **Agendamento por dia:** a escolha é de uma data com capacidade disponível; não há seleção de horário específico nem previsão garantida para o atendimento.
+- **Situações exibidas:** a presença de uma situação em filtros, como Cancelado, não significa que exista uma ação para cancelar pela interface. Esta versão não oferece cancelamento ou reagendamento pelo paciente.
+- **Múltiplos vínculos:** uma pessoa pode possuir triagens, urgências, agendamentos e consultas distintos. O sistema não resume todo o histórico em uma única situação do paciente.
+
+## Qualidade e documentação complementar
+
+O projeto utiliza testes automatizados para verificar cadastros, classificação, prioridades, distribuição de médicos, agendamentos, consultas, histórico, perfis e administração. Os comportamentos de JavaScript também são executados pela suíte de testes, e funcionalidades desenvolvidas com TDD possuem cenários definidos antes da implementação.
+
+O GitHub Actions instala as dependências e executa os testes em **pushes para `dev` e `main`** e em **pull requests destinados a essas branches**. Os resultados ficam nos checks do PR e na aba Actions.
+
+Para executar a validação local, é necessário Node.js disponível, além do ambiente Python:
+
+```powershell
 .\venv\Scripts\python.exe -m pytest -q
 ```
 
-Os testes utilizam SQLite temporário, separado do banco da aplicação.
-Cobrem cadastro, validação, duplicidade de e-mail e repetição do seed.
+Documentação complementar:
 
-## Interface da Sprint 1 — issue #22
-
-Com a API em execução, abra http://127.0.0.1:8000/.
-O frontend é servido pelo próprio FastAPI, sem etapa de build ou dependências JavaScript.
-
-- `frontend/index.html`: entrada e atalhos do paciente.
-- `frontend/pages/`: cadastro, relato de sintomas e histórico.
-- `frontend/assets/css/base.css`: tokens de cores, tipografia, componentes, responsividade e alto contraste compartilhados.
-- `frontend/assets/js/app.js`: controles de leitura e integração com a API.
-
-As páginas compartilham cabeçalho, navegação, foco visível e controles A−/A+
-(18 a 24 px de tamanho base). O contraste e o tamanho são lembrados no navegador.
-O número do paciente é mantido apenas na aba; dados clínicos não são gravados no
-armazenamento do navegador. Também é possível informar `?paciente=ID` nas páginas
-de triagem e histórico. Use o número devolvido pelo cadastro, sem presumir IDs do seed.
-
-Roteiro de apresentação: cadastrar um paciente fictício, guardar o número,
-continuar para a triagem, selecionar um sintoma e enviar. O resultado mostra a
-classificação por cor **e texto**, prioridade e justificativa realmente devolvidas
-pela API. Depois, consultar o histórico pelo mesmo número.
-
-O histórico unifica os eventos de `eventos_historico` com as triagens salvas em
-`triagens`, incluindo relatos anteriores à criação do frontend. A consulta não
-altera o banco e evita repetir eventos de triagem já representados com o mesmo
-relato e instante. A API mantém a ordem crescente; a interface mostra os mais
-recentes primeiro e oferece filtros por tipo. O número do paciente deve ser o
-mesmo no envio e na consulta. O endpoint de triagem não retorna especialidade;
-o histórico exibe o valor disponível no registro, sem inferir uma especialidade.
-A nova navegação utiliza `frontend/pages/historico.html` com dados reais da API.
-
-A demonstração usa regras locais por palavras-chave e não realiza diagnóstico.
-
-### Banco antigo: erro ao enviar sintomas
-
-Se o SQLite foi criado antes da integração da triagem, execute uma vez:
-
-```powershell
-.\venv\Scripts\python.exe -m scripts.atualizar_banco
-```
-
-O comando utiliza o `DATABASE_URL` configurado, faz um backup SQLite consistente
-(`*.backup-*.db`) e adiciona as colunas `estrategia`, `classificacao` e `prioridade`
-ausentes. Registros anteriores são preservados. Pode ser executado novamente sem
-duplicar alterações. Reinicie o servidor após a atualização e recarregue o navegador.
-
-## Integração contínua — CI-01 (#39)
-
-O workflow `.github/workflows/pytest.yml` executa a suíte em pushes na branch
-`dev` e em pull requests destinados a `dev`. No GitHub, acompanhe
-o resultado na aba **Actions**, no workflow **Testes Python**, ou nos checks do PR.
-
-O job usa Ubuntu e Python 3.12, instala `requirements-dev.txt` (que também inclui
-as dependências da aplicação) e executa `python -m pytest -q` na raiz do projeto.
-O cache do pip considera ambos os arquivos de dependências. O ambiente usa
-`MODO_IA=mock` e SQLite em memória, sem depender do `.env`, banco local ou chave
-de API. Não é necessário iniciar o servidor nem executar o seed.
-
-Falhas de instalação ou de testes interrompem o job e produzem um check de falha;
-o limite de execução é de 10 minutos. O workflow tem permissão somente de leitura
-do repositório e não publica código. Exigir o check para permitir merge depende
-de uma regra de proteção da branch, configurada separadamente no GitHub.
-
-Para reproduzir os testes no PowerShell:
-
-```powershell
-$env:MODO_IA = "mock"
-$env:DATABASE_URL = "sqlite:///:memory:"
-.\venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\venv\Scripts\python.exe -m pytest -q
-```
+- [Planejamento das iterações e documentação da equipe](https://github.com/ES2-UFPI/SinalVital/wiki/Plano-de-Itera%C3%A7%C3%B5es).
+- [Configuração e operações administrativas](docs/painel-administrativo.md).
+- [Identificação e separação de perfis](docs/login-perfis.md).
+- [Documentação interativa da API, com o servidor ativo](http://127.0.0.1:8000/docs).

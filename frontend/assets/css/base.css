@@ -1048,6 +1048,21 @@ body.high-contrast .notice {
     margin-top: 8px
 }
 
+.patient-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.patient-actions > .button {
+    margin: 0;
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+}
+
 .feedback:empty {
     display: none
 }
@@ -1195,12 +1210,142 @@ body.high-contrast .notice {
     margin: 0
 }
 
+/* Prontuário Evolutivo e Histórico no Painel Médico (Issue #77 — [003-02]) */
+.prontuario-evolutivo {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-left: 5px solid var(--navy);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 22px;
+    overflow-wrap: anywhere
+}
+
+.prontuario-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line)
+}
+
+.prontuario-header h3 {
+    margin: 4px 0 0;
+    font-size: 1.1rem
+}
+
+.prontuario-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px
+}
+
+.prontuario-meta-item {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 12px 14px
+}
+
+.prontuario-meta-item span {
+    display: block;
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    margin-bottom: 4px
+}
+
+.prontuario-meta-item strong {
+    font-size: .95rem;
+    color: var(--ink)
+}
+
+.prontuario-motivo-box {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 18px
+}
+
+.prontuario-motivo-box p {
+    margin: 6px 0
+}
+
+.prontuario-motivo-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px
+}
+
+.prontuario-historico-secao {
+    border-top: 1px solid var(--line);
+    padding-top: 16px
+}
+
+.prontuario-historico-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px
+}
+
+.prontuario-historico-header h4 {
+    margin: 0 0 4px;
+    font-size: 1rem
+}
+
+.prontuario-historico-header .field-help {
+    margin: 0
+}
+
+.prontuario-filtro-box {
+    min-width: 210px
+}
+
+.prontuario-filtro-box select {
+    margin-bottom: 0;
+    min-height: 44px;
+    padding: 8px 12px
+}
+
+.prontuario-timeline {
+    margin-top: 14px;
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 6px
+}
+
+.prontuario-timeline li {
+    background: var(--panel);
+    padding: 16px 18px;
+    margin-bottom: 14px
+}
+
 body.high-contrast .card,
 body.high-contrast .result-card,
-body.high-contrast .queue-card {
+body.high-contrast .queue-card,
+body.high-contrast .prontuario-evolutivo,
+body.high-contrast .prontuario-meta-item,
+body.high-contrast .prontuario-motivo-box,
+body.high-contrast .prontuario-timeline li {
     background: #101010;
     border-color: #fff;
     color: #fff
+}
+
+body.high-contrast .prontuario-meta-item strong {
+    color: #ffdf00
 }
 
 body.high-contrast .btn {
@@ -1236,13 +1381,16 @@ body.high-contrast .patient-banner strong {
         grid-template-columns: 1fr
     }
 
-    .queue-header {
+    .queue-header,
+    .prontuario-header,
+    .prontuario-historico-header {
         flex-direction: column;
         align-items: stretch
     }
 
     .queue-header .btn,
-    .form-actions .btn {
+    .form-actions .btn,
+    .prontuario-header .btn {
         width: 100%
     }
 }

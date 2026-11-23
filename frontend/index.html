@@ -7,10 +7,10 @@
     <meta name="theme-color" content="#16294A">
     <title>Início | SinalVital</title>
     <link rel="stylesheet" href="/assets/css/base.css">
-    <script src="/assets/js/app.js" defer></script>
-</head>
+    <script src="/assets/js/auth.js" defer></script><script src="/assets/js/app.js" defer></script>
+<link rel="stylesheet" href="/assets/css/paciente.css?v=1"></head>
 
-<body data-page="inicio"><a class="skip" href="#conteudo">Pular para o conteúdo</a>
+<body class="patient-ui" data-page="inicio"><a class="skip" href="#conteudo">Pular para o conteúdo</a>
     <div class="pulse" aria-hidden="true"><svg viewBox="0 0 1440 30" preserveAspectRatio="none">
             <path
                 d="M0 15 H190 l8 -5 8 10 8 -5 h110 l10 -10 10 23 10 -26 10 13 h250 l8 -5 8 10 8 -5 h180 l10 -10 10 23 10 -26 10 13 H1440" />
@@ -27,8 +27,9 @@
             <p class="eyebrow">ESPAÇO DO PACIENTE</p>
             <nav aria-label="Navegação principal"><a href="/" data-nav="inicio"><span aria-hidden="true">⌂</span>
                     Início</a><a href="/pages/cadastro.html" data-nav="cadastro"><span aria-hidden="true">＋</span> Meu
-                    cadastro</a><a href="/pages/triagem.html" data-nav="triagem"><span aria-hidden="true">♡</span>
-                    Relatar sintomas</a><a href="/pages/medico.html" data-nav="medico"><span aria-hidden="true">✚</span>
+                    cadastro</a><a href="/pages/meus-dados.html" data-nav="dados" hidden><span aria-hidden="true">◉</span> Meus dados</a><a href="/pages/triagem.html" data-nav="triagem"><span aria-hidden="true">♡</span>
+                    Relatar sintomas</a><a href="/pages/agendamento.html" data-nav="agendamento"><span aria-hidden="true">📅</span>
+                    Agendar consulta</a><a href="/pages/medico.html" data-nav="medico"><span aria-hidden="true">✚</span>
                     Painel médico</a><a href="/pages/historico.html" data-nav="historico"><span
                         aria-hidden="true">◷</span> Meu histórico</a><a href="/pages/fila.html" data-nav="fila"><span
                         aria-hidden="true">⋮</span> Fila de espera</a></nav>
@@ -40,15 +41,15 @@
             <div class="page-heading">
                 <div>
                     <p class="eyebrow">SEU CUIDADO, MAIS PERTO</p>
-                    <h1>Olá! Como você está hoje?</h1>
-                    <p>Vamos cuidar da sua saúde, um passo de cada vez.</p>
+                    <h1 id="saudacao-paciente">Olá! Como você está hoje?</h1>
+                    <p>Relate sintomas, agende consultas e acompanhe seus registros.</p>
                 </div>
             </div>
             <section class="hero" aria-labelledby="hero-title">
-                <div><span class="hero-label">ESTAMOS AQUI PARA AJUDAR</span>
-                    <h2 id="hero-title">O primeiro passo é<br>contar como você se sente.</h2>
+                <div><span class="hero-label">RELATO DE SINTOMAS</span>
+                    <h2 id="hero-title">Como você está se sentindo?</h2>
                     <p>Descreva seus sintomas e receba uma classificação inicial para orientar a busca por atendimento.
-                    </p><a class="button primary" href="/pages/triagem.html">Quero relatar meus sintomas <span
+                    </p><a class="button primary" href="/pages/triagem.html">Relatar meus sintomas <span
                             aria-hidden="true">→</span></a>
                 </div>
                 <div class="hero-art" aria-hidden="true">
@@ -60,9 +61,9 @@
             </section>
             <section aria-labelledby="next">
                 <div class="section-title">
-                    <h2 id="next">O que você precisa fazer?</h2><span>Simples, do início ao cuidado.</span>
+                    <h2 id="next">Acesse seu atendimento</h2><span>Escolha a próxima ação.</span>
                 </div>
-                <div class="cards"><a class="action-card" href="/pages/cadastro.html"><span
+                <div class="cards"><a class="action-card" href="/pages/meus-dados.html" hidden><span class="tile-icon">◉</span><span class="step">SEU CADASTRO</span><h3>Meus dados</h3><p>Confira as informações do seu cadastro.</p><span class="card-link">Consultar meus dados →</span></a><a class="action-card" href="/pages/cadastro.html"><span
                             class="tile-icon">＋</span><span class="step">01 · SEUS DADOS</span>
                         <h3>Fazer meu cadastro</h3>
                         <p>Informe seus dados para começar a usar o SinalVital.</p><span class="card-link">Abrir
@@ -87,6 +88,11 @@
                         <h3>Fila de espera</h3>
                         <p>Acompanhe sua posição na fila priorizada e o médico alocado.</p><span class="card-link">Ver
                             fila de espera →</span>
+                    </a><a class="action-card" href="/pages/agendamento.html"><span class="tile-icon">📅</span><span
+                            class="step">06 · CONSULTAS ELETIVAS</span>
+                        <h3>Agendar consulta</h3>
+                        <p>Escolha a especialidade, médico e data com vagas abertas.</p><span class="card-link">Marcar
+                            consulta →</span>
                     </a></div>
             </section>
             <div class="help-strip"><span aria-hidden="true">ⓘ</span>

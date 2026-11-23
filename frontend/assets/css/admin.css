@@ -1,0 +1,119 @@
+.admin-tabs { display:flex; gap:12px; flex-wrap:wrap; margin:24px 0; }
+.admin-tabs [aria-selected="true"] { background:var(--accent); color:#fff; }
+.admin-list { list-style:none; padding:0; display:grid; gap:16px; }
+.admin-card { border:1px solid var(--line); border-radius:10px; padding:18px; overflow-wrap:anywhere; }
+.admin-card h3 { margin-top:0; }
+.admin-card summary { cursor:pointer; font-weight:650; }
+.admin-card p { margin:8px 0; }
+.admin-days { display:flex; flex-wrap:wrap; gap:14px; }
+.admin-days label, .admin-checkbox { display:flex; align-items:center; gap:10px; }
+.admin-days input, .admin-checkbox input { width:24px; height:24px; margin:0; accent-color:var(--accent); }
+#admin-agenda { border:1px solid var(--line); border-radius:10px; margin:20px 0; padding:18px; }
+.admin-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.admin-vinculos { padding-left:22px; }
+.admin-vinculos li { margin:18px 0; }
+#admin-auto-status { margin:20px 0 16px; }
+body.high-contrast .admin-tabs [aria-selected="true"] { background:#ffdf00; color:#000; }
+
+/* Área administrativa: navegação, formulários e leitura dos vínculos. */
+[data-page="admin"] .shell { grid-template-columns:200px minmax(0,1fr); }
+[data-page="admin"] main { min-width:0; padding:36px; }
+[data-page="admin"] .header { gap:20px; flex-wrap:wrap; }
+[data-page="admin"] .page-heading { margin-bottom:30px; }
+[data-page="admin"] .page-heading h1 { font-size:clamp(1.5rem,2.5vw,1.95rem); line-height:1.25; margin-bottom:12px; }
+[data-page="admin"] .page-heading p { margin-bottom:0; max-width:64ch; }
+[data-page="admin"] .page-heading .eyebrow { margin-bottom:10px; }
+[data-page="admin"] .panel { min-width:0; padding:28px; border-radius:16px; border:1px solid var(--line); box-shadow:0 4px 20px rgb(22 41 74 / 3%); }
+[data-page="admin"] h2 { font-size:1.2rem; line-height:1.35; }
+[data-page="admin"] .admin-section-heading { margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--line); }
+[data-page="admin"] .admin-section-heading h2 { margin:0 0 8px; }
+[data-page="admin"] .admin-section-heading p { font-size:.83rem; color:var(--muted); margin:0; }
+.admin-access { max-width:650px; margin-bottom:28px; border-top:3px solid var(--navy) !important; }
+[data-page="admin"] .admin-access:has(#admin-login[hidden]) { max-width:none; padding:0; border:0 !important; box-shadow:none; background:transparent; margin-bottom:20px; }
+.admin-access:has(#admin-login[hidden]):has(#admin-feedback[hidden]) { display:none; }
+[data-page="admin"] #admin-feedback { margin:20px 0 0; }
+[data-page="admin"] #admin-login[hidden] + #admin-feedback { margin:0; }
+[data-page="admin"] #admin-login .admin-section-heading { border:0; padding:0; }
+[data-page="admin"] label { font-size:.85rem; margin-bottom:10px; }
+[data-page="admin"] input,[data-page="admin"] select { border:1px solid var(--line); border-radius:10px; padding:13px 14px; margin-bottom:22px; }
+[data-page="admin"] input:focus,[data-page="admin"] select:focus { border-color:var(--focus); }
+[data-page="admin"] .hint { font-size:.78rem; line-height:1.6; }
+[data-page="admin"] .button { margin-top:0; max-width:100%; white-space:normal; text-align:center; transition:background-color .18s,border-color .18s; }
+.admin-workspace-bar { margin-bottom:28px; padding:12px; border:1px solid var(--line); background:var(--panel); border-radius:14px; }
+.admin-workspace-bar .admin-tabs { gap:6px; margin:0; }
+.admin-workspace-bar .admin-tabs .button { border:0; background:transparent; color:var(--muted); border-radius:9px; }
+.admin-workspace-bar .admin-tabs [aria-selected="true"] { background:var(--accent-soft); color:var(--accent); }
+.admin-workspace-bar #admin-sair { border-color:transparent; font-size:.78rem; color:var(--muted); }
+[data-page="admin"] #painel-medicos .content-grid { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:24px; align-items:start; }
+.admin-fields { padding:0; border:0; margin:0 0 24px; min-width:0; }
+.admin-fields legend { font-weight:700; color:var(--navy); font-size:.85rem; padding:0; margin-bottom:20px; }
+[data-page="admin"] #admin-agenda { background:var(--bg); padding:18px; border-radius:12px; margin:0 0 24px; }
+[data-page="admin"] #admin-agenda p { font-size:.8rem; }
+[data-page="admin"] .admin-days { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:16px 0 22px; }
+[data-page="admin"] .admin-days label { padding:10px; border:1px solid var(--line); border-radius:8px; font-size:.78rem; margin:0; background:var(--panel); cursor:pointer; }
+[data-page="admin"] .admin-days input,[data-page="admin"] .admin-checkbox input { width:24px; height:24px; min-height:24px; margin:0; flex-shrink:0; }
+[data-page="admin"] .admin-checkbox { margin:0 0 24px; font-size:.83rem; }
+[data-page="admin"] #admin-medico-form > .primary { width:100%; }
+[data-page="admin"] #admin-atualizar-medicos { font-size:.75rem; min-height:44px; padding:10px 14px; }
+[data-page="admin"] .admin-list-description { font-size:.8rem; color:var(--muted); margin:8px 0 0; }
+[data-page="admin"] #admin-medicos-lista { margin:24px 0 0; }
+[data-page="admin"] .admin-card { padding:20px; border-radius:12px; background:var(--panel); }
+[data-page="admin"] .admin-card h3 { font-size:1rem; color:var(--navy); margin:0 0 10px; }
+[data-page="admin"] .admin-card p { font-size:.82rem; line-height:1.6; color:var(--muted); margin:8px 0 0; }
+[data-page="admin"] #admin-medicos-lista .admin-card { border-left:3px solid var(--navy); }
+[data-page="admin"] #admin-filtros { padding:20px; border:1px solid var(--line); border-radius:12px; background:var(--bg); }
+[data-page="admin"] #admin-filtros .field-row { max-width:none; display:grid; grid-template-columns:minmax(0,1.2fr) repeat(2,minmax(0,1fr)); gap:16px; }
+[data-page="admin"] #admin-filtros .field-row > div { min-width:0; }
+[data-page="admin"] #admin-filtros input,[data-page="admin"] #admin-filtros select { margin-bottom:0; }
+[data-page="admin"] #admin-filtros .hint { margin:14px 0 18px; max-width:85ch; }
+[data-page="admin"] #admin-auto-status { display:flex; align-items:center; gap:10px; margin:24px 0 20px; padding:14px 16px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--muted); }
+[data-page="admin"] #admin-auto-status::before { content:"↻"; font-size:1rem; color:var(--navy); }
+[data-page="admin"] #admin-pacientes-lista { margin:0; }
+[data-page="admin"] details.admin-card { padding:0; overflow:hidden; }
+[data-page="admin"] details.admin-card > summary { padding:20px; color:var(--navy); font-size:.9rem; line-height:1.6; transition:background-color .18s; }
+[data-page="admin"] details.admin-card > summary:hover { background:var(--bg); }
+[data-page="admin"] details.admin-card[open] > summary { background:var(--bg); border-bottom:1px solid var(--line); }
+[data-page="admin"] details.admin-card > p { margin:20px; }
+[data-page="admin"] .admin-vinculos { list-style:none; margin:0; padding:20px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+[data-page="admin"] .admin-vinculos li { border:1px solid var(--line); border-left:3px solid var(--navy); background:var(--panel); border-radius:10px; padding:16px; margin:0; min-width:0; }
+[data-page="admin"] .admin-vinculos strong { font-size:.83rem; color:var(--navy); }
+[data-page="admin"] [hidden] { display:none !important; }
+[data-page="admin"].high-contrast .panel,[data-page="admin"].high-contrast .admin-card,
+[data-page="admin"].high-contrast .admin-workspace-bar,[data-page="admin"].high-contrast #admin-filtros,
+[data-page="admin"].high-contrast #admin-auto-status,[data-page="admin"].high-contrast #admin-agenda,
+[data-page="admin"].high-contrast .admin-days label,[data-page="admin"].high-contrast .admin-vinculos li,
+[data-page="admin"].high-contrast details.admin-card > summary { background:#101010; border-color:#fff; color:#fff; }
+[data-page="admin"].high-contrast .admin-card h3,[data-page="admin"].high-contrast .admin-vinculos strong,
+[data-page="admin"].high-contrast .admin-fields legend { color:#ffdf00; }
+[data-page="admin"].high-contrast .admin-card p { color:#fff; }
+[data-page="admin"].high-contrast .admin-workspace-bar .admin-tabs [aria-selected="true"] { background:#ffdf00; color:#000; }
+[data-page="admin"].high-contrast .admin-workspace-bar #admin-sair { color:#fff; }
+@media(max-width:1150px) {
+  [data-page="admin"] #painel-medicos .content-grid { grid-template-columns:minmax(0,1fr); }
+  [data-page="admin"] #admin-filtros .field-row { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:900px) {
+  [data-page="admin"] .shell { display:flex; flex-direction:column; }
+  [data-page="admin"] .sidebar { display:flex; padding:12px 20px; border-right:0; border-bottom:1px solid var(--line); }
+  [data-page="admin"] .sidebar > .eyebrow,[data-page="admin"] .sidebar .side-note { display:none; }
+  [data-page="admin"] .sidebar nav a { margin:0; font-size:.8rem; }
+  [data-page="admin"] main { padding:28px 20px; }
+}
+@media(max-width:600px) {
+  [data-page="admin"] .header { padding:20px 16px; justify-content:center; gap:16px; }
+  [data-page="admin"] .reading { flex-wrap:wrap; gap:8px; }
+  [data-page="admin"] main { padding:24px 16px; }
+  [data-page="admin"] .panel { padding:22px 18px; }
+  .admin-workspace-bar { align-items:stretch; gap:12px; }
+  .admin-workspace-bar .admin-tabs { width:100%; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.4fr); }
+  .admin-workspace-bar .button { padding:10px; font-size:.78rem; }
+  .admin-workspace-bar #admin-sair { width:100%; border-top:1px solid var(--line); border-radius:0; }
+  [data-page="admin"] #admin-filtros { padding:16px; }
+  [data-page="admin"] #admin-filtros > .button,[data-page="admin"] #admin-login > .button { width:100%; }
+  [data-page="admin"] .admin-vinculos { grid-template-columns:minmax(0,1fr); padding:16px; }
+  [data-page="admin"] details.admin-card > summary { padding:16px; }
+  [data-page="admin"] .admin-days { grid-template-columns:minmax(0,1fr); }
+}
+@media(prefers-reduced-motion:reduce) {
+  [data-page="admin"] *,[data-page="admin"] *::before,[data-page="admin"] *::after { transition:none !important; animation:none !important; scroll-behavior:auto !important; }
+}

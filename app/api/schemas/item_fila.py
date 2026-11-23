@@ -39,10 +39,14 @@ class ItemFilaResponse(BaseModel):
     id: int
     paciente_id: int
     paciente_nome: Optional[str] = None
+    paciente_idade: Optional[int] = None
+    paciente_condicao_cronica: Optional[str] = None
     triagem_id: int
     urgencia: Optional[str] = None
     especialidade: Optional[str] = None
     motivo: Optional[str] = None
+    relato_paciente: Optional[str] = None
+    justificativa_ia: Optional[str] = None
     status: str = "aguardando"
     score: float = 0.0
     medico_id: Optional[int] = None
@@ -71,25 +75,35 @@ class ItemFilaResponse(BaseModel):
                 else AGUARDANDO_VAGA_NA_ESPECIALIDADE
             )
             motivo = None
+            relato_paciente = None
+            justificativa_ia = None
             urgencia = None
             especialidade = None
             if triagem_obj is not None:
-                motivo = getattr(triagem_obj, "justificativa", None) or getattr(
-                    triagem_obj, "texto_sintomas", None
-                )
+                relato_paciente = getattr(triagem_obj, "texto_sintomas", None)
+                justificativa_ia = getattr(triagem_obj, "justificativa", None)
+                motivo = justificativa_ia or relato_paciente
                 urgencia = getattr(triagem_obj, "urgencia", None)
                 especialidade = getattr(triagem_obj, "especialidade", None)
 
             paciente_nome = getattr(paciente_obj, "nome", None) if paciente_obj else None
+            paciente_idade = getattr(paciente_obj, "idade", None) if paciente_obj else None
+            paciente_condicao_cronica = (
+                getattr(paciente_obj, "condicao_cronica", None) if paciente_obj else None
+            )
 
             return {
                 "id": getattr(data, "id", None),
                 "paciente_id": getattr(data, "paciente_id", None),
                 "paciente_nome": paciente_nome,
+                "paciente_idade": paciente_idade,
+                "paciente_condicao_cronica": paciente_condicao_cronica,
                 "triagem_id": getattr(data, "triagem_id", None),
                 "urgencia": urgencia,
                 "especialidade": especialidade,
                 "motivo": motivo,
+                "relato_paciente": relato_paciente,
+                "justificativa_ia": justificativa_ia,
                 "status": getattr(data, "status", "aguardando"),
                 "score": getattr(data, "score", 0.0),
                 "medico_id": getattr(data, "medico_id", None),

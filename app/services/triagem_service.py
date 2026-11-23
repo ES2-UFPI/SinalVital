@@ -28,8 +28,8 @@ class TriagemService:
 
         classificador = TriageClassifierFactory.criar(estrategia)
         resultado = classificador.classificar(relato)
-        classificador_ia_mock = ClassificadorFactory.criar()
-        classificacao_detalhada = classificador_ia_mock.classificar(relato)
+        classificador_detalhado = ClassificadorFactory.criar()
+        classificacao_detalhada = classificador_detalhado.classificar(relato)
 
         urgencia_final = classificacao_detalhada["urgencia"]
         classificacao_unificada, prioridade_unificada = (

@@ -59,12 +59,21 @@ class MotorPriorizacao:
         """
         disponiveis = (
             medico for medico in medicos
-            if medico.ativo
-            and medico.especialidade == especialidade
-            and carga_atual.get(medico.id, 0) < medico.capacidade_simultanea
+            if MotorPriorizacao._medico_elegivel(
+                medico, especialidade, carga_atual.get(medico.id, 0)
+            )
         )
         return min(
             disponiveis,
             key=lambda medico: (carga_atual.get(medico.id, 0), medico.id),
             default=None,
+        )
+
+    @staticmethod
+    def _medico_elegivel(medico: MedicoLike, especialidade: str, carga: int) -> bool:
+        """Verifica atividade, especialidade e capacidade para receber um paciente."""
+        return (
+            medico.ativo
+            and medico.especialidade == especialidade
+            and carga < medico.capacidade_simultanea
         )

@@ -133,6 +133,14 @@ def listar_historico_paciente(
 
 
 
+@router.get("/{paciente_id}", response_model=PacienteResposta, summary="Consultar cadastro do paciente")
+def consultar_paciente(paciente_id: int, db: Session = Depends(get_db)):
+    paciente = db.get(Paciente, paciente_id)
+    if paciente is None:
+        raise HTTPException(status_code=404, detail="Paciente não encontrado.")
+    return paciente
+
+
 @router.post("", response_model=PacienteResposta, status_code=status.HTTP_201_CREATED)
 def criar_paciente(dados: PacienteEntrada, db: Session = Depends(get_db)):
     if db.query(Paciente).filter(Paciente.email == str(dados.email)).first():
