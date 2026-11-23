@@ -5,7 +5,7 @@ import subprocess
 import pytest
 
 
-@pytest.mark.parametrize('script', ['auth.test.cjs', 'admin-api.test.cjs', 'admin-refresh.test.cjs', 'triagem.test.cjs'])
+@pytest.mark.parametrize('script', ['auth.test.cjs', 'admin-api.test.cjs', 'admin-refresh.test.cjs', 'triagem.test.cjs', 'medico-layout.test.cjs'])
 def test_fluxos_de_sessao_e_isolamento_no_javascript(script):
     node = shutil.which('node')
     assert node, 'Node.js é necessário para executar os testes de frontend.'

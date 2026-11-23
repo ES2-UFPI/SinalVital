@@ -1,0 +1,93 @@
+/* Organização exclusiva do painel médico; preserva as cores e controles globais. */
+[data-page="medico"] .shell { grid-template-columns:190px minmax(0,1fr); }
+[data-page="medico"] main { min-width:0; padding:32px; }
+.doctor-heading { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:32px; }
+.doctor-heading h1 { font-size:clamp(1.45rem,2.2vw,1.8rem); line-height:1.25; margin-bottom:10px; }
+.doctor-heading p { margin-bottom:0; max-width:62ch; }
+.doctor-heading .eyebrow { margin-bottom:10px; }
+.doctor-context { flex-shrink:0; border:1px solid var(--line); background:var(--panel); border-radius:24px; padding:8px 14px; color:var(--muted); font-size:.75rem; }
+[data-page="medico"] .doctor-grid { grid-template-columns:minmax(280px,.7fr) minmax(0,1.3fr); gap:24px; }
+[data-page="medico"] .card.panel { padding:24px; min-width:0; box-shadow:0 4px 20px rgb(22 41 74 / 3%); }
+[data-page="medico"] h2 { font-size:1.15rem; line-height:1.35; }
+.doctor-queue .queue-header { flex-wrap:wrap; gap:14px; }
+.doctor-queue .eyebrow { margin:0 0 8px; }
+.doctor-queue .queue-header .btn { font-size:.78rem; min-height:44px; }
+.doctor-queue .queue-filter { background:var(--bg); padding:16px; border:1px solid var(--line); border-radius:10px; margin-bottom:24px; }
+[data-page="medico"] .field-help { font-size:.78rem; line-height:1.55; }
+.doctor-queue .queue-filter .field-help { margin:0; }
+.doctor-queue .queue-filter select { margin-bottom:10px; }
+.doctor-professional-filter { margin-top:16px; }
+.doctor-professional-filter:has(select:disabled) { display:none; }
+.doctor-queue .queue-card { padding:18px; background:var(--panel); gap:12px; }
+.doctor-queue .queue-card h3 { font-size:1rem; }
+.doctor-queue .queue-meta { font-size:.75rem; }
+.doctor-queue .queue-motivo { margin:0; font-size:.85rem; }
+.doctor-queue .btn-atender { background:var(--panel); color:var(--navy); border-color:var(--line); margin-top:4px; }
+.doctor-queue .btn-atender:hover { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
+.doctor-queue .queue-card.is-selected { background:var(--accent-soft); }
+.doctor-workspace-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:24px; }
+.doctor-workspace-heading .eyebrow { margin-bottom:8px; }
+.doctor-workspace-heading h2 { margin:0; overflow-wrap:anywhere; scroll-margin-top:24px; }
+.doctor-back { display:none; font-size:.8rem; }
+.doctor-empty { text-align:center; padding:40px 12px; border:1px dashed var(--line); border-radius:12px; margin-bottom:24px; }
+.doctor-empty h3 { font-size:1.1rem; margin:16px 0 8px; }
+.doctor-empty p { color:var(--muted); max-width:38ch; margin:0 auto; font-size:.88rem; }
+.doctor-empty-icon { display:inline-flex; align-items:center; justify-content:center; width:56px; height:56px; border-radius:16px; background:var(--bg); color:var(--navy); font-size:1.4rem; }
+.doctor-identifiers { margin-bottom:24px; padding:14px 16px; border:1px solid var(--line); border-radius:10px; }
+.doctor-identifiers summary { font-size:.82rem; font-weight:650; color:var(--muted); cursor:pointer; }
+.doctor-identifiers[open] summary { margin-bottom:20px; }
+.doctor-workspace .patient-banner { background:var(--bg); border-color:var(--line); border-left-color:var(--navy); padding:18px; }
+.doctor-workspace .prontuario-evolutivo { background:transparent; border:0; padding:0; margin-bottom:32px; }
+.doctor-workspace .prontuario-header { border:0; margin-bottom:12px; padding:0; }
+.doctor-workspace .prontuario-meta-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.doctor-workspace .prontuario-meta-item { background:var(--bg); overflow-wrap:anywhere; }
+.doctor-workspace .prontuario-meta-item span { font-size:.65rem; }
+.doctor-workspace .prontuario-meta-item strong { font-size:.85rem; }
+.doctor-workspace .prontuario-motivo-box { border-left:3px solid var(--navy); padding:18px; font-size:.85rem; }
+.doctor-workspace .prontuario-historico-secao { border:1px solid var(--line); border-radius:10px; padding:16px; }
+.prontuario-historico-secao > summary { cursor:pointer; font-weight:650; color:var(--navy); }
+.prontuario-historico-secao > summary span { display:block; margin:4px 0 0 18px; font-size:.75rem; font-weight:400; color:var(--muted); }
+.prontuario-historico-secao[open] > summary { margin-bottom:20px; }
+.doctor-workspace .prontuario-timeline { max-height:none; overflow:visible; padding-right:0; }
+.doctor-record { border:0; border-top:1px solid var(--line); padding:24px 0 0; margin:0; min-width:0; }
+.doctor-record legend { font-size:1.15rem; color:var(--navy); font-weight:700; padding:0 12px 0 0; }
+.doctor-record > .field-help { margin:0 0 24px; }
+.doctor-record textarea { min-height:130px; }
+.doctor-record .form-actions { margin-top:24px; gap:12px; }
+.doctor-record .form-actions .btn { white-space:normal; }
+.doctor-record #limpar-consulta { border-color:transparent; background:transparent; color:var(--muted); }
+[data-page="medico"] #feedback { margin-top:20px; }
+[data-page="medico"] .btn { transition:background-color .18s,border-color .18s; }
+[data-page="medico"] [hidden] { display:none !important; }
+[data-page="medico"].high-contrast .doctor-empty-icon,
+[data-page="medico"].high-contrast .queue-filter,
+[data-page="medico"].high-contrast .queue-card.is-selected,
+[data-page="medico"].high-contrast .doctor-context { background:#101010; color:#fff; }
+[data-page="medico"].high-contrast .doctor-workspace h2,
+[data-page="medico"].high-contrast .doctor-record legend,
+[data-page="medico"].high-contrast summary { color:#ffdf00; }
+[data-page="medico"].high-contrast .doctor-queue .btn-atender,
+[data-page="medico"].high-contrast #limpar-consulta { color:#fff; background:#101010; border-color:#fff; }
+@media(max-width:1200px) {
+  [data-page="medico"] .shell { grid-template-columns:1fr; }
+  [data-page="medico"] .sidebar { display:none; }
+  [data-page="medico"] .header { flex-wrap:wrap; gap:16px; }
+}
+@media(max-width:950px) {
+  [data-page="medico"] .doctor-grid { grid-template-columns:minmax(0,1fr); }
+  .doctor-back { display:inline-block; flex-shrink:0; }
+  .doctor-context { display:none; }
+}
+@media(max-width:600px) {
+  [data-page="medico"] main { padding:24px 16px; }
+  [data-page="medico"] .card.panel { padding:20px 16px; }
+  .doctor-heading { margin-bottom:24px; }
+  .doctor-workspace-heading { flex-wrap:wrap; }
+  .doctor-workspace .prontuario-meta-grid { grid-template-columns:minmax(0,1fr); }
+  .doctor-record .form-actions { flex-direction:column; }
+  .doctor-record .form-actions .btn { width:100%; }
+  .doctor-workspace .prontuario-filtro-box { min-width:0; width:100%; }
+}
+@media(prefers-reduced-motion:reduce) {
+  [data-page="medico"] *,[data-page="medico"] *::before,[data-page="medico"] *::after { transition:none !important; animation:none !important; scroll-behavior:auto !important; }
+}
