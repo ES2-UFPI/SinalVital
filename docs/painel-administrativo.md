@@ -59,12 +59,30 @@ pacientes que possuem a etapa, mas preserva todos os seus vínculos no resultado
 Uma urgência concluída e sua consulta são registros distintos e podem aparecer
 juntos. A leitura administrativa não recalcula scores nem aloca pacientes.
 
+### Atualização dos atendimentos
+
+A aba **Pacientes e atendimentos** consulta os dados automaticamente a cada
+10 segundos, contados após o término da requisição anterior. A atualização mantém
+os filtros aplicados e os cartões de pacientes abertos. Editar o campo de busca
+não altera o filtro até usar **Buscar pacientes**. Se não houver mudanças nos
+dados, os cartões não são reconstruídos.
+
+A consulta automática pausa na aba Médicos, quando a página fica oculta e ao
+sair da administração. Ao voltar à página visível, os dados são consultados
+novamente. Não há requisições de pacientes sobrepostas; resultados antigos são
+descartados após troca de filtro, aba ou encerramento do acesso. Se o serviço
+falhar temporariamente, os últimos dados ficam visíveis, com aviso e nova
+tentativa automática. O horário da última atualização aparece acima da lista.
+
 ## Testes
 
 - `tests/integration/test_admin.py`: senha, configuração ausente, validações,
   duplicidade, cadastro integrado ao login e vínculos simultâneos do paciente.
 - `tests/frontend/admin-api.test.cjs`: header de acesso, limpeza da senha,
   resposta atrasada após sair e erro de configuração.
+- `tests/frontend/admin-refresh.test.cjs`: atualização do status, cartões abertos,
+  filtros, pausa e retomada, respostas antigas, falhas temporárias e busca
+  enfileirada durante a atualização automática.
 - O pytest executa os testes JavaScript através de `tests/test_auth_javascript.py`;
   requer Node.js no PATH, como os testes de perfil já existentes.
 
