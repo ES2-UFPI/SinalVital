@@ -71,11 +71,14 @@ O relato aceita de **5 a 5.000 caracteres** e fica vinculado ao paciente identif
 - Justificativa da classificação.
 - Especialidade recomendada.
 - Prioridade, número e data do registro.
-- Médico alocado e pontuação da fila, quando a inclusão na fila é concluída.
+- **Sugestão da IA** de encaminhamento (atendimento de urgência ou agendamento de consulta) com a recomendação textual.
 
-A tela tenta incluir automaticamente o paciente na fila de urgência após salvar a triagem. Se essa inclusão falhar, o relato salvo continua disponível no histórico; o registro de triagem e a entrada na fila são operações distintas.
+A triagem **não coloca o paciente na fila automaticamente**: quem decide é o paciente. O resultado exibe sempre os dois botões, e a IA apenas destaca o sugerido:
 
-O resultado oferece os atalhos **Consultar meu histórico** e **Ir para Agendamento**. Quando aplicável, também apresenta orientação de atendimento imediato. Não oferece acesso ao painel médico.
+- **Entrar na Fila de Atendimento de Urgência** inclui o paciente na fila somente quando ele clica. Depois disso, a tela mostra o médico alocado e a pontuação, e o botão fica bloqueado para evitar entradas duplicadas. Se a inclusão falhar, o erro é exibido e o botão pode ser usado de novo.
+- **Ir para Agendamento de Consulta** abre o agendamento levando a especialidade, o registro da triagem e a justificativa da IA.
+
+O resultado também oferece **Consultar meu histórico** e, quando aplicável, a orientação de atendimento imediato com o atalho para o SAMU 192. Não oferece acesso ao painel médico.
 
 ### Agendamento de consultas
 

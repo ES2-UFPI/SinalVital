@@ -284,8 +284,11 @@ $("cadastro-form")?.addEventListener("submit", (event) => {
 });
 
 // ---------------------------------------------------------------------------
-// 02 · Triagem + Encaminhamento Automático para a Fila (POST /fila)
+// 02 · Triagem: sugestão da IA e escolha do paciente (fila de urgência ou agendamento)
 // ---------------------------------------------------------------------------
+const FLUXO_URGENCIA = "Atendimento de urgência";
+const FLUXO_AGENDAMENTO = "Agendamento de consulta";
+
 document.querySelectorAll("[data-sintoma]").forEach((button) =>
   button.addEventListener("click", () => {
     const input = $("relato");
@@ -321,20 +324,7 @@ triagemForm?.addEventListener("submit", (event) => {
     });
     patientSession.set(pacienteId);
 
-    // Integração automática da triagem com a fila priorizada (segura via try/catch)
-    let filaItem = null;
-    try {
-      filaItem = await api("/fila", {
-        method: "POST",
-        body: JSON.stringify({
-          triagem_id: data.id,
-          paciente_id: Number(pacienteId),
-        }),
-      });
-    } catch {
-      /* Não interrompe o fluxo de triagem caso a fila não esteja disponível no momento */
-    }
-
+    // A triagem não coloca o paciente na fila: ele escolhe pelos botões do resultado.
     if (result) {
       const titulo = element("h2", "Classificação inicial", "");
       titulo.id = "resultado-title";
@@ -353,20 +343,17 @@ triagemForm?.addEventListener("submit", (event) => {
         ),
       );
 
-      if (filaItem) {
-        const medicoAlocado =
-          filaItem.medico_alocado || "Aguardando vaga na especialidade";
-        const scoreTexto =
-          typeof filaItem.score === "number"
-            ? ` · Score de prioridade: ${filaItem.score.toFixed(1)}`
-            : "";
-        result.append(
-          element(
-            "p",
-            `Médico alocado na fila: ${medicoAlocado}${scoreTexto}`,
-          ),
-        );
-      }
+      // Sugestão da IA (issue #69). Sem o campo, assume urgência: na dúvida, nunca rebaixa.
+      const sugereUrgencia = data.sugestao_fluxo !== "agendamento";
+      const sugestao = element("div", undefined, "notice");
+      sugestao.append(
+        element(
+          "p",
+          `Sugestão da IA: ${sugereUrgencia ? FLUXO_URGENCIA : FLUXO_AGENDAMENTO}`,
+        ),
+      );
+      if (data.recomendacao) sugestao.append(element("p", data.recomendacao));
+      result.append(sugestao);
 
       result.append(
         element(
@@ -389,15 +376,56 @@ triagemForm?.addEventListener("submit", (event) => {
         result.append(call);
       }
 
-      const again = element("a", "Consultar meu histórico →", "button secondary");
-      again.href = `/pages/historico.html?paciente=${encodeURIComponent(pacienteId)}`;
-      const acoes = element("div", undefined, "patient-actions");
-      acoes.append(again);
+      // Os dois caminhos ficam sempre visíveis; a IA só destaca o sugerido.
+      const botaoFila = element(
+        "button",
+        "Entrar na Fila de Atendimento de Urgência",
+        `button ${sugereUrgencia ? "primary" : "secondary"}`,
+      );
+      botaoFila.type = "button";
+      botaoFila.id = "btn-entrar-fila";
+      const statusFila = element("p", undefined, "feedback");
+      statusFila.id = "fila-status";
+      statusFila.hidden = true;
+      statusFila.setAttribute("aria-live", "polite");
+      let entrandoNaFila = false;
+      botaoFila.addEventListener("click", async () => {
+        if (entrandoNaFila || botaoFila.disabled) return;
+        entrandoNaFila = true;
+        botaoFila.disabled = true;
+        setFeedback(statusFila, "Entrando na fila…", "info");
+        try {
+          const item = await api("/fila", {
+            method: "POST",
+            body: JSON.stringify({
+              triagem_id: data.id,
+              paciente_id: Number(pacienteId),
+            }),
+          });
+          const medicoAlocado =
+            item.medico_alocado || "Aguardando vaga na especialidade";
+          const scoreTexto =
+            typeof item.score === "number"
+              ? ` · Score de prioridade: ${item.score.toFixed(1)}`
+              : "";
+          setFeedback(
+            statusFila,
+            `Você entrou na fila de atendimento de urgência. Médico alocado: ${medicoAlocado}${scoreTexto}`,
+            "success",
+          );
+          Feedback.sucesso("Você entrou na fila de atendimento de urgência.");
+        } catch (error) {
+          entrandoNaFila = false;
+          botaoFila.disabled = false;
+          setFeedback(statusFila, error.message, "error");
+          Feedback.erro(error.message);
+        }
+      });
 
       const linkAgendamento = element(
         "a",
-        "Ir para Agendamento →",
-        "button secondary btn",
+        "Ir para Agendamento de Consulta",
+        `button ${sugereUrgencia ? "secondary" : "primary"}`,
       );
       linkAgendamento.id = "btn-ir-agendamento";
       const paramsAgendamento = new URLSearchParams({
@@ -407,8 +435,13 @@ triagemForm?.addEventListener("submit", (event) => {
         motivo: data.justificativa || data.texto_sintomas || "",
       });
       linkAgendamento.href = `/pages/agendamento.html?${paramsAgendamento.toString()}`;
-      acoes.append(linkAgendamento);
-      result.append(acoes);
+
+      const again = element("a", "Consultar meu histórico →", "button secondary");
+      again.href = `/pages/historico.html?paciente=${encodeURIComponent(pacienteId)}`;
+
+      const acoes = element("div", undefined, "patient-actions");
+      acoes.append(botaoFila, linkAgendamento, again);
+      result.append(acoes, statusFila);
 
       result.hidden = false;
     }

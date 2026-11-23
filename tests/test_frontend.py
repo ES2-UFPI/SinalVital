@@ -306,14 +306,15 @@ def test_agendamento_js_disponivel_e_integrado(client):
 
 
 def test_triagem_contem_botao_ir_para_agendamento(client):
-    """O script app.js deve conter o botão 'Ir para Agendamento' no resultado da triagem."""
+    """O app.js oferece, no resultado da triagem, os botões de escolha (issue #70)."""
     resp = client.get('/assets/js/app.js')
     assert resp.status_code == 200
     js = resp.text
 
     assert 'btn-ir-agendamento' in js
-    assert 'Ir para Agendamento →' in js
+    assert 'Ir para Agendamento de Consulta' in js
     assert '/pages/agendamento.html' in js
+    assert 'Entrar na Fila de Atendimento de Urgência' in js
 
 
 
