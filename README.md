@@ -135,6 +135,8 @@ A demonstração funciona por padrão com **regras locais de palavras-chave**, s
 
 Também existe integração opcional com **Claude**, habilitada pela configuração do ambiente. Nesse modo, o relato é enviado ao serviço externo para classificação. Se a chave estiver ausente, ocorrer falha de comunicação ou a resposta for inválida, o sistema recorre ao classificador local. A integração externa depende de configuração e de crédito no serviço.
 
+O retorno da triagem também inclui a **sugestão de encaminhamento** (`sugestao_fluxo` e `recomendacao`), derivada da urgência e igual nos dois modos de classificação: emergência e alta sugerem o fluxo de **urgência**; média e baixa sugerem **agendamento**. Urgência ausente ou desconhecida sugere urgência. É uma orientação de apoio, sem validação clínica, e não substitui um médico.
+
 ## Painel médico
 
 O médico identificado encontra os pacientes vinculados ao seu cadastro, podendo alternar entre **urgência** e **consultas agendadas**. O painel organiza o trabalho em dois blocos: **selecionar o paciente** e **realizar o atendimento**.
