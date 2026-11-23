@@ -39,6 +39,17 @@ function paciente(etapa){return [{id:1,nome:'Paciente exemplo',atendimentos:[
 ]}];}
 const texto=node=>[node.textContent||'',...node.children.map(texto)].join(' ');
 
+test('trocar etapa aplica filtro imediatamente e o mantem na atualizacao automatica',async()=>{
+  const b=browser();await b.enter();
+  b.get('admin-etapa').value='em_atendimento';
+  await b.event('admin-etapa','change');
+  assert.match(b.calls.at(-1),/etapa=em_atendimento/);
+  await b.tick();
+  assert.match(b.calls.at(-1),/etapa=em_atendimento/);
+  b.get('admin-etapa').value='todos';await b.event('admin-etapa','change');
+  assert.match(b.calls.at(-1),/etapa=todos/);
+});
+
 test('atendimento muda automaticamente e preserva cartao aberto e filtros',async()=>{
   const b=browser();b.get('admin-busca').value='Paciente';b.get('admin-etapa').value='aguardando';
   b.setResponse(async()=>paciente('aguardando'));await b.enter();
