@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -20,4 +21,6 @@ class TriagemResponse(BaseModel):
     urgencia: str
     especialidade: str
     justificativa: str
+    sugestao_fluxo: Literal["urgencia", "agendamento"]
+    recomendacao: str
     criado_em: datetime
